@@ -6,8 +6,6 @@
 
 #include <iostream>
 
-#include "SDL3/SDL_timer.h"
-
 // GameObject::GameObject(int x, int y) : x(x), y(y){
 // };
 
@@ -17,10 +15,7 @@ void GameObject::draw(SDL_Renderer* renderer) {
     SDL_RenderFillRect(renderer, &obj_rect);
 }
 
-void GameObject::update() {
-    Uint64 newTime = SDL_GetTicks();
-    float dt = (newTime - lastTick) / 1000.0f;
-    lastTick = newTime;
+void GameObject::update(float dt) {
     if (rb) rb->update(dt);
 }
 

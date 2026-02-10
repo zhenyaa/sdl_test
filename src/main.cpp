@@ -2,26 +2,32 @@
 #include <iostream>
 #include <math.h>
 #include <ostream>
+#include <memory>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3_image/SDL_image.h>
 #include "GameObject.h"
+#include "config.h"
+#include "sdl_raii.h"
 #include "utils.h"
 
 // #include "../cmake-build-debug/_deps/sdl3-src/src/render/SDL_sysrender.h"
 
-/* We will use this renderer to draw into this window every frame. */
-static SDL_Window *window = NULL;
-static SDL_Renderer *renderer = NULL;
-static SDL_Rect *rects = NULL;
-int width, height;
-GameObject player(1, 1);
-const int D = 2;
-SDL_Thread *thread;
-int threadReturnValue;
-SDL_Texture *bgGradient = nullptr;
-SDL_Texture *mainTex = nullptr;
-float worldOffsetX = 0.0f;
+struct AppState {
+    SDL_Window* window = nullptr;
+    SDL_Renderer* renderer = nullptr;
+    int width = 0;
+    int height = 0;
+    GameObject player{1, 1};
+    TexturePtr bgGradient;
+    TexturePtr mainTex;
+    float worldOffsetX = 0.0f;
+    Uint64 lastTick = 0;
+    float accumulator = 0.0f;
+    bool moveLeft = false;
+    bool moveRight = false;
+    bool jumpPressed = false;
+};
 
 
 static int SDLCALL TestThread(void *ptr) {
@@ -35,14 +41,15 @@ static int SDLCALL TestThread(void *ptr) {
     return cnt;
 }
 
-SDL_Texture *CreateGradient(SDL_Renderer *r, int w, int h) {
-    SDL_Texture *tex = SDL_CreateTexture(
+TexturePtr CreateGradient(SDL_Renderer *r, int w, int h) {
+    SDL_Texture *raw = SDL_CreateTexture(
         r,
         SDL_PIXELFORMAT_RGBA8888,
         SDL_TEXTUREACCESS_TARGET,
         w, h
     );
-    SDL_SetRenderTarget(r, tex);
+    TexturePtr tex(raw);
+    SDL_SetRenderTarget(r, tex.get());
 
     for (int y = 0; y < h; y++) {
         float t = (float) y / (h - 1);
@@ -62,6 +69,7 @@ SDL_Texture *CreateGradient(SDL_Renderer *r, int w, int h) {
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     SDL_SetAppMetadata("Example Renderer Clear", "1.0", "com.example.renderer-clear");
 
+    auto state = std::make_unique<AppState>();
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
 
@@ -69,61 +77,71 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     }
 
 
-    if (!SDL_CreateWindowAndRenderer("examples/renderer/clear", 640, 480, SDL_WINDOW_RESIZABLE, &window, &renderer)) {
+    if (!SDL_CreateWindowAndRenderer("examples/renderer/clear",
+                                     GameConfig::window_width,
+                                     GameConfig::window_height,
+                                     SDL_WINDOW_RESIZABLE,
+                                     &state->window,
+                                     &state->renderer)) {
         SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    SDL_SetRenderLogicalPresentation(renderer, 640, 480, SDL_LOGICAL_PRESENTATION_DISABLED);
+    SDL_SetRenderLogicalPresentation(state->renderer, GameConfig::window_width, GameConfig::window_height,
+                                     SDL_LOGICAL_PRESENTATION_DISABLED);
 
-    SDL_GetWindowSize(window, &width, &height);
-    player.x = width / 2.0f;
-    player.y = height / 2.0f;
-    std::cout << "w/h " << width << ":" << height << std::endl;
-    const char *n = SDL_GetRendererName(renderer);
+    SDL_GetWindowSize(state->window, &state->width, &state->height);
+    state->player.x = state->width / 2.0f;
+    state->player.y = state->height / 2.0f;
+    std::cout << "w/h " << state->width << ":" << state->height << std::endl;
+    const char *n = SDL_GetRendererName(state->renderer);
     std::cout << "Renderer name: " << n << std::endl;
-    bgGradient = CreateGradient(renderer, width, height);
-    mainTex = IMG_LoadTexture(renderer, "assets/images/main_asset.png");
-    if (!mainTex) {
+    state->bgGradient = CreateGradient(state->renderer, state->width, state->height);
+    state->mainTex.reset(IMG_LoadTexture(state->renderer, "assets/images/main_asset.png"));
+    if (!state->mainTex) {
         SDL_Log("Failed to load image: %s", SDL_GetError());
     } else {
         SDL_Log("Image loaded successfully!");
     }
 
+    state->lastTick = SDL_GetTicks();
+    *appstate = state.release();
     return SDL_APP_CONTINUE;
 }
 
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
+    auto *state = static_cast<AppState*>(appstate);
     if (event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS; // end the program
     }
     if (event->type == SDL_EVENT_WINDOW_RESIZED) {
-        SDL_GetWindowSize(window, &width, &height);
+        SDL_GetWindowSize(state->window, &state->width, &state->height);
     }
     if (event->type == SDL_EVENT_KEY_DOWN) {
         switch (event->key.key) {
             case SDLK_SPACE:
-                player.jump(1000.f);
-                std::cout << "press key space " << player.y << std::endl;
-                return SDL_APP_CONTINUE;
-            case SDLK_UP:
-                if (player.y > 1) player.y -= 10;
-                std::cout << "press key " << player.y << std::endl;
-                return SDL_APP_CONTINUE;
-            case SDLK_DOWN:
-                std::cout << "press key " << player.y << std::endl;
-                player.y += 10;
+                state->jumpPressed = true;
+                std::cout << "press key space " << state->player.y << std::endl;
                 return SDL_APP_CONTINUE;
             case SDLK_LEFT:
-                std::cout << "press key " << player.y << std::endl;
-                if (player.x > 1) player.x -= 10;
+                std::cout << "press key " << state->player.y << std::endl;
+                state->moveLeft = true;
                 return SDL_APP_CONTINUE;
             case SDLK_RIGHT:
-                std::cout << "press key " << player.y << std::endl;
-                if (player.x <= width / 2) {
-                    player.x += 10;
-                }
-                worldOffsetX += 10;
+                std::cout << "press key " << state->player.y << std::endl;
+                state->moveRight = true;
+                return SDL_APP_CONTINUE;
+            default:
+                return SDL_APP_CONTINUE;
+        }
+    }
+    if (event->type == SDL_EVENT_KEY_UP) {
+        switch (event->key.key) {
+            case SDLK_LEFT:
+                state->moveLeft = false;
+                return SDL_APP_CONTINUE;
+            case SDLK_RIGHT:
+                state->moveRight = false;
                 return SDL_APP_CONTINUE;
             default:
                 return SDL_APP_CONTINUE;
@@ -135,9 +153,33 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate) {
-    float scrollThreshold = width / 3.0f;
-    if (player.x - worldOffsetX > scrollThreshold) {
-        worldOffsetX = player.x - scrollThreshold;
+    auto *state = static_cast<AppState*>(appstate);
+    Uint64 now = SDL_GetTicks();
+    float frameDt = (now - state->lastTick) / 1000.0f;
+    state->lastTick = now;
+    if (frameDt > GameConfig::max_frame_dt) {
+        frameDt = GameConfig::max_frame_dt;
+    }
+    state->accumulator += frameDt;
+
+    while (state->accumulator >= GameConfig::fixed_dt) {
+        float moveDir = 0.0f;
+        if (state->moveLeft) moveDir -= 1.0f;
+        if (state->moveRight) moveDir += 1.0f;
+        if (state->player.rb) {
+            state->player.rb->velX = moveDir * GameConfig::move_speed;
+        }
+        if (state->jumpPressed) {
+            state->player.jump(GameConfig::jump_power);
+            state->jumpPressed = false;
+        }
+        state->player.update(GameConfig::fixed_dt);
+        state->accumulator -= GameConfig::fixed_dt;
+    }
+
+    float scrollThreshold = state->width / 3.0f;
+    if (state->player.x - state->worldOffsetX > scrollThreshold) {
+        state->worldOffsetX = state->player.x - scrollThreshold;
     }
 
     SDL_FRect src; // part of the texture
@@ -153,36 +195,36 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     dst.h = 150; // height to draw
     float blockWidth = dst.w;
     float blockHeight = dst.h;
-    SDL_RenderTexture(renderer, bgGradient, NULL, NULL);
+    SDL_RenderTexture(state->renderer, state->bgGradient.get(), NULL, NULL);
 
-    int numBlocks = (int) ceil(width / dst.w) + 1; // сколько блоков нужно
-    int firstBlockIndex = (int) (worldOffsetX / blockWidth);
+    int numBlocks = (int) ceil(state->width / dst.w) + 1; // сколько блоков нужно
+    int firstBlockIndex = (int) (state->worldOffsetX / blockWidth);
     for (int i = 0; i < numBlocks; i++) {
         SDL_FRect block;
-        block.x = (firstBlockIndex + i) * blockWidth - worldOffsetX;
-        block.y = height - blockHeight;
+        block.x = (firstBlockIndex + i) * blockWidth - state->worldOffsetX;
+        block.y = state->height - blockHeight;
         block.w = blockWidth;
         block.h = blockHeight;
-        if (block.x + block.w >= 0 && block.x <= width) {
-            SDL_RenderTexture(renderer, mainTex, &src, &block);
+        if (block.x + block.w >= 0 && block.x <= state->width) {
+            SDL_RenderTexture(state->renderer, state->mainTex.get(), &src, &block);
         }
     }
-    player.update();
-    // std::cout << "player x: " << player.x << std::endl;
-    // std::cout << "player y: " << player.y << std::endl;
-    // std::cout << "player fravity: " << player.rb->gravity << std::endl;
-    // std::cout << "player vel" << player.rb->velY << std::endl;
-    player.draw(renderer);
+    state->player.draw(state->renderer);
 
-    SDL_RenderPresent(renderer);
+    SDL_RenderPresent(state->renderer);
     return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    if (bgGradient)
-        SDL_DestroyTexture(bgGradient);
-    if (mainTex)
-        SDL_DestroyTexture(mainTex);
+    std::unique_ptr<AppState> state{static_cast<AppState*>(appstate)};
+    if (state) {
+        if (state->renderer) {
+            SDL_DestroyRenderer(state->renderer);
+        }
+        if (state->window) {
+            SDL_DestroyWindow(state->window);
+        }
+    }
     std::cout << "quit" << std::endl;
     /* SDL will clean up the window/renderer for us. */
 }

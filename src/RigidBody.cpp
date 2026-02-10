@@ -4,17 +4,15 @@
 
 #include "RigidBody.h"
 
-#include <iostream>
-
 #include "GameObject.h"
+#include "config.h"
 void RigidBody::update(float dt) {
     if (!obj) return;
-    std::cout << "rb velocity " << velY << std::endl;
-    const int groundLevel = 950;
     velY += gravity * dt;
+    obj->x += static_cast<int>(velX * dt);
     obj->y += static_cast<int>(velY * dt);
-    if (obj->y + obj->height > groundLevel) {
-        obj->y = groundLevel - obj->height;
+    if (obj->y + obj->height > GameConfig::ground_level) {
+        obj->y = GameConfig::ground_level - obj->height;
         velY = 0;
     }
 }
