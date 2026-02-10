@@ -24,6 +24,9 @@ struct AppState {
     float worldOffsetX = 0.0f;
     Uint64 lastTick = 0;
     float accumulator = 0.0f;
+    bool moveLeft = false;
+    bool moveRight = false;
+    bool jumpPressed = false;
 };
 
 
@@ -117,27 +120,28 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     if (event->type == SDL_EVENT_KEY_DOWN) {
         switch (event->key.key) {
             case SDLK_SPACE:
-                state->player.jump(GameConfig::jump_power);
+                state->jumpPressed = true;
                 std::cout << "press key space " << state->player.y << std::endl;
-                return SDL_APP_CONTINUE;
-            case SDLK_UP:
-                if (state->player.y > 1) state->player.y -= 10;
-                std::cout << "press key " << state->player.y << std::endl;
-                return SDL_APP_CONTINUE;
-            case SDLK_DOWN:
-                std::cout << "press key " << state->player.y << std::endl;
-                state->player.y += 10;
                 return SDL_APP_CONTINUE;
             case SDLK_LEFT:
                 std::cout << "press key " << state->player.y << std::endl;
-                if (state->player.x > 1) state->player.x -= 10;
+                state->moveLeft = true;
                 return SDL_APP_CONTINUE;
             case SDLK_RIGHT:
                 std::cout << "press key " << state->player.y << std::endl;
-                if (state->player.x <= state->width / 2) {
-                    state->player.x += 10;
-                }
-                state->worldOffsetX += 10;
+                state->moveRight = true;
+                return SDL_APP_CONTINUE;
+            default:
+                return SDL_APP_CONTINUE;
+        }
+    }
+    if (event->type == SDL_EVENT_KEY_UP) {
+        switch (event->key.key) {
+            case SDLK_LEFT:
+                state->moveLeft = false;
+                return SDL_APP_CONTINUE;
+            case SDLK_RIGHT:
+                state->moveRight = false;
                 return SDL_APP_CONTINUE;
             default:
                 return SDL_APP_CONTINUE;
@@ -159,6 +163,16 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     state->accumulator += frameDt;
 
     while (state->accumulator >= GameConfig::fixed_dt) {
+        float moveDir = 0.0f;
+        if (state->moveLeft) moveDir -= 1.0f;
+        if (state->moveRight) moveDir += 1.0f;
+        if (state->player.rb) {
+            state->player.rb->velX = moveDir * GameConfig::move_speed;
+        }
+        if (state->jumpPressed) {
+            state->player.jump(GameConfig::jump_power);
+            state->jumpPressed = false;
+        }
         state->player.update(GameConfig::fixed_dt);
         state->accumulator -= GameConfig::fixed_dt;
     }

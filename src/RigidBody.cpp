@@ -9,6 +9,7 @@
 void RigidBody::update(float dt) {
     if (!obj) return;
     velY += gravity * dt;
+    obj->x += static_cast<int>(velX * dt);
     obj->y += static_cast<int>(velY * dt);
     if (obj->y + obj->height > GameConfig::ground_level) {
         obj->y = GameConfig::ground_level - obj->height;

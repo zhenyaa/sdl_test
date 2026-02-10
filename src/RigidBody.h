@@ -12,6 +12,7 @@ class RigidBody {
     public:
         float gravity = 600.0f;
         float velY = 1.0f;
+        float velX = 0.0f;
         GameObject* obj;
         RigidBody(GameObject* obj, float gravity=500.0f): obj(obj), gravity(gravity) {};
         void update(float tick);
