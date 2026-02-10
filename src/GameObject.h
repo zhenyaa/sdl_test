@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "config.h"
 #include "RigidBody.h"
 #include "SDL3/SDL_render.h"
 
@@ -16,9 +17,6 @@ private:
     int D;
     bool moving = false;
 
-protected:
-    Uint64 lastTick = 0;
-
 public:
     int x;
     int y;
@@ -27,10 +25,10 @@ public:
     std::unique_ptr<RigidBody> rb;
 
     GameObject(int x, int y) : x(x), y(y), width(10), height(10), D(10) {
-        rb = std::make_unique<RigidBody>(this, 600.6f);
+        rb = std::make_unique<RigidBody>(this, GameConfig::gravity);
     };
 
-    void update();
+    void update(float dt);
 
     void draw(SDL_Renderer *renderer);
 

@@ -4,7 +4,6 @@
 
 #ifndef SDL_TEST_RIGIDBODY_H
 #define SDL_TEST_RIGIDBODY_H
-#include "SDL3/SDL_timer.h"
 class GameObject;
 
 class RigidBody {
