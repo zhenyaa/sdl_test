@@ -24,6 +24,7 @@ add_executable(sdl_test
         src/GameObject.cpp
         src/RigidBody.cpp
         src/RigidBody.h
+        src/sprites.h
 )
 
 add_custom_command(TARGET sdl_test POST_BUILD

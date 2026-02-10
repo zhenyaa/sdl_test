@@ -11,9 +11,8 @@
 #include "sdl_raii.h"
 #include "utils.h"
 
-// #include "../cmake-build-debug/_deps/sdl3-src/src/render/SDL_sysrender.h"
 
-struct AppState {
+struct GameManager {
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
     int width = 0;
@@ -69,7 +68,7 @@ TexturePtr CreateGradient(SDL_Renderer *r, int w, int h) {
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     SDL_SetAppMetadata("Example Renderer Clear", "1.0", "com.example.renderer-clear");
 
-    auto state = std::make_unique<AppState>();
+    auto state = std::make_unique<GameManager>();
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
 
@@ -110,7 +109,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-    auto *state = static_cast<AppState*>(appstate);
+    auto *state = static_cast<GameManager*>(appstate);
     if (event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS; // end the program
     }
@@ -153,7 +152,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate) {
-    auto *state = static_cast<AppState*>(appstate);
+    auto *state = static_cast<GameManager*>(appstate);
     Uint64 now = SDL_GetTicks();
     float frameDt = (now - state->lastTick) / 1000.0f;
     state->lastTick = now;
@@ -167,7 +166,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         if (state->moveLeft) moveDir -= 1.0f;
         if (state->moveRight) moveDir += 1.0f;
         if (state->player.rb) {
-            state->player.rb->velX = moveDir * GameConfig::move_speed;
+            state->player.rb->velocityX = moveDir * GameConfig::move_speed;
         }
         if (state->jumpPressed) {
             state->player.jump(GameConfig::jump_power);
@@ -216,7 +215,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    std::unique_ptr<AppState> state{static_cast<AppState*>(appstate)};
+    std::unique_ptr<GameManager> state{static_cast<GameManager*>(appstate)};
     if (state) {
         if (state->renderer) {
             SDL_DestroyRenderer(state->renderer);

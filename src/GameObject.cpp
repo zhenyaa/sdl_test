@@ -21,7 +21,7 @@ void GameObject::update(float dt) {
 
 void GameObject::jump(float power) {
     std::cout << "jumping" << std::endl;
-    rb->velY = -power;
-    std::cout << "velocity: " << rb->velY << std::endl;
+    rb->velocityY = -power;
+    std::cout << "velocity: " << rb->velocityY << std::endl;
 
 }
