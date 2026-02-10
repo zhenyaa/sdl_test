@@ -11,6 +11,10 @@
 #include "RigidBody.h"
 #include "SDL3/SDL_render.h"
 
+struct Sprite {
+    SDL_Texture* texture = nullptr;
+    SDL_FRect src{};
+};
 
 class GameObject {
 private:
@@ -23,6 +27,7 @@ public:
     int height;
     int width;
     std::unique_ptr<RigidBody> rb;
+    Sprite sprite;
 
     GameObject(int x, int y) : x(x), y(y), width(10), height(10), D(10) {
         rb = std::make_unique<RigidBody>(this, GameConfig::gravity);
@@ -33,6 +38,7 @@ public:
     void draw(SDL_Renderer *renderer);
 
     void jump(float power= 400.f);
+    bool loadSprite(SDL_Renderer* renderer, const char* path, SDL_FRect srcRect);
 };
 
 

@@ -9,6 +9,9 @@
 #include "GameObject.h"
 #include "config.h"
 #include "sdl_raii.h"
+#include <vector>
+#include "generated_sprites.h"
+#include <sstream>
 #include "utils.h"
 
 
@@ -18,6 +21,7 @@ struct GameManager {
     int width = 0;
     int height = 0;
     GameObject player{1, 1};
+    std::vector<std::unique_ptr<GameObject>> platforms;
     TexturePtr bgGradient;
     TexturePtr mainTex;
     float worldOffsetX = 0.0f;
@@ -28,6 +32,17 @@ struct GameManager {
     bool jumpPressed = false;
 };
 
+GameObject* AddPlatform(GameManager* gm, float x, float y, const Sprites::Tile& tile) {
+    auto obj = std::make_unique<GameObject>(x, y);
+    std::string path;
+    std::stringstream ss;
+    ss << "assets/images/TILED_files/" << tile.textureFile;
+    path = ss.str();
+    obj->sprite.texture = IMG_LoadTexture(gm->renderer, path.c_str()); // SDL_Texture*
+    obj->sprite.src = tile.src;
+    gm->platforms.push_back(std::move(obj));
+    return gm->platforms.back().get();
+}
 
 static int SDLCALL TestThread(void *ptr) {
     int cnt;
@@ -95,6 +110,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     const char *n = SDL_GetRendererName(state->renderer);
     std::cout << "Renderer name: " << n << std::endl;
     state->bgGradient = CreateGradient(state->renderer, state->width, state->height);
+    GameObject* gm1 = AddPlatform(state.get(), 0, (float)state->height-40, Sprites::Objects_82);
+    GameObject* gm2 = AddPlatform(state.get(), 20, (float)state->height-40, Sprites::Objects_82);
+    GameObject* gm3 = AddPlatform(state.get(), 40, (float)state->height-40, Sprites::Objects_82);
     state->mainTex.reset(IMG_LoadTexture(state->renderer, "assets/images/main_asset.png"));
     if (!state->mainTex) {
         SDL_Log("Failed to load image: %s", SDL_GetError());
@@ -181,33 +199,22 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         state->worldOffsetX = state->player.x - scrollThreshold;
     }
 
-    SDL_FRect src; // part of the texture
-    src.x = 0; // x in the PNG
-    src.y = 16; // y in the PNG
-    src.w = 15; // width of the sprite
-    src.h = 15; // height of the sprite
-
-    SDL_FRect dst;
-    dst.x = 100; // screen X
-    dst.y = 50; // screen Y
-    dst.w = 200; // width to draw
-    dst.h = 150; // height to draw
-    float blockWidth = dst.w;
-    float blockHeight = dst.h;
     SDL_RenderTexture(state->renderer, state->bgGradient.get(), NULL, NULL);
-
-    int numBlocks = (int) ceil(state->width / dst.w) + 1; // сколько блоков нужно
-    int firstBlockIndex = (int) (state->worldOffsetX / blockWidth);
-    for (int i = 0; i < numBlocks; i++) {
-        SDL_FRect block;
-        block.x = (firstBlockIndex + i) * blockWidth - state->worldOffsetX;
-        block.y = state->height - blockHeight;
-        block.w = blockWidth;
-        block.h = blockHeight;
-        if (block.x + block.w >= 0 && block.x <= state->width) {
-            SDL_RenderTexture(state->renderer, state->mainTex.get(), &src, &block);
-        }
+    for (auto& plat:state->platforms) {
+        plat->draw(state->renderer);
     }
+    // int numBlocks = (int) ceil(state->width / dst.w) + 1; // сколько блоков нужно
+    // int firstBlockIndex = (int) (state->worldOffsetX / blockWidth);
+    // for (int i = 0; i < numBlocks; i++) {
+    //     SDL_FRect block;
+    //     block.x = (firstBlockIndex + i) * blockWidth - state->worldOffsetX;
+    //     block.y = state->height - blockHeight;
+    //     block.w = blockWidth;
+    //     block.h = blockHeight;
+    //     if (block.x + block.w >= 0 && block.x <= state->width) {
+    //         SDL_RenderTexture(state->renderer, state->mainTex.get(), &src, &block);
+    //     }
+    // }
     state->player.draw(state->renderer);
 
     SDL_RenderPresent(state->renderer);
