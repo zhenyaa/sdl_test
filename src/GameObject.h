@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "Collider.h"
 #include "config.h"
 #include "RigidBody.h"
 #include "SDL3/SDL_render.h"
@@ -18,7 +19,7 @@ struct Sprite {
 
 class GameObject {
 private:
-    int D;
+    float scale = 1.0f;
     bool moving = false;
 
 public:
@@ -28,14 +29,23 @@ public:
     int width;
     std::unique_ptr<RigidBody> rb;
     Sprite sprite;
+    Collider collider;
 
-    GameObject(int x, int y) : x(x), y(y), width(10), height(10), D(10) {
+    GameObject(int x, int y) : x(x), y(y), width(10), height(10) {
         rb = std::make_unique<RigidBody>(this, GameConfig::gravity);
     };
+    GameObject(int x, int y, float scale) : x(x), y(y), width(10), height(10), scale(scale) {
+        rb = std::make_unique<RigidBody>(this, GameConfig::gravity);
+    };
+
+    // GameObject(int x, int y) : x(x), y(y), width(10), height(10), D(10) {
+    //     rb = std::make_unique<RigidBody>(this, GameConfig::gravity);
+    // }; need add several types to have objects without rb and other
 
     void update(float dt);
 
     void draw(SDL_Renderer *renderer);
+    void draw(SDL_Renderer *renderer, bool debug);
 
     void jump(float power= 400.f);
     bool loadSprite(SDL_Renderer* renderer, const char* path, SDL_FRect srcRect);

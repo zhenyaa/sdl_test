@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 4.1)
 project(sdl_test LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
+#set(CMAKE_CXX_COMPILER g++-13)
+#set(CMAKE_C_COMPILER gcc-13)
 include(FetchContent)
 
 FetchContent_Declare(
@@ -26,6 +27,9 @@ add_executable(sdl_test
         src/RigidBody.h
         src/sprites.h
         src/generated_sprites.h
+        src/Tileset.h
+        src/Collider.cpp
+        src/Collider.h
 )
 
 add_custom_command(TARGET sdl_test POST_BUILD

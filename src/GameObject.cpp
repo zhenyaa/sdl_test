@@ -21,10 +21,34 @@ void GameObject::draw(SDL_Renderer* renderer) {
     SDL_FRect dstRect = {
         (float)x,
         (float)y,
-        sprite.src.w,   // используем размер тайла
-        sprite.src.h
+        sprite.src.w * scale,   // используем размер тайла
+        sprite.src.h * scale
     };
     SDL_RenderTexture(renderer, sprite.texture, &sprite.src, &dstRect);
+}
+
+void GameObject::draw(SDL_Renderer *renderer, bool debug) {
+    // 1. Рисуем спрайт или простой прямоугольник
+    if (!sprite.texture) {
+        SDL_SetRenderDrawColorFloat(renderer, 156.f/255.f, 35.f/255.f, 26.f/255.f, 1.f);
+        SDL_FRect obj_rect = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height)};
+        SDL_RenderFillRect(renderer, &obj_rect);
+    } else {
+        SDL_FRect dstRect = {static_cast<float>(x), static_cast<float>(y), sprite.src.w * scale, sprite.src.h * scale};
+        SDL_RenderTexture(renderer, sprite.texture, &sprite.src, &dstRect);
+    }
+
+    // 2. Если debug=true, рисуем коллайдеры
+    if (debug) {
+        std::cout<<"try render collider" << std::endl;
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180); // зелёный
+
+        for (auto& box : collider.boxes) {
+            SDL_FRect r = { x + box.ox, y + box.oy, box.w, box.h };
+            SDL_RenderRect(renderer, &r);
+        }
+    }
 }
 
 void GameObject::update(float dt) {

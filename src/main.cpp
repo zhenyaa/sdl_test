@@ -11,6 +11,7 @@
 #include "sdl_raii.h"
 #include <vector>
 #include "generated_sprites.h"
+#include "Tileset.h"
 #include <sstream>
 #include "utils.h"
 
@@ -20,7 +21,7 @@ struct GameManager {
     SDL_Renderer* renderer = nullptr;
     int width = 0;
     int height = 0;
-    GameObject player{1, 1};
+    std::unique_ptr<GameObject> player;
     std::vector<std::unique_ptr<GameObject>> platforms;
     TexturePtr bgGradient;
     TexturePtr mainTex;
@@ -32,15 +33,28 @@ struct GameManager {
     bool jumpPressed = false;
 };
 
-GameObject* AddPlatform(GameManager* gm, float x, float y, const Sprites::Tile& tile) {
-    auto obj = std::make_unique<GameObject>(x, y);
-    std::string path;
+GameObject* AddPlatform(GameManager* gm, float x, float y, const sprites::SpriteInfo* tile)
+{
+    auto obj = std::make_unique<GameObject>(x, y, 2.f);
+
     std::stringstream ss;
-    ss << "assets/images/TILED_files/" << tile.textureFile;
-    path = ss.str();
-    obj->sprite.texture = IMG_LoadTexture(gm->renderer, path.c_str()); // SDL_Texture*
-    obj->sprite.src = tile.src;
+    ss << "assets/images/TILED_files/sprite_sheet2.png";
+    std::string path = ss.str();
+    obj->sprite.texture = IMG_LoadTexture(gm->renderer, path.c_str());
+    if (!obj->sprite.texture)
+    {
+        SDL_Log("Failed to load texture: %s", SDL_GetError());
+        return nullptr;
+    }
+    obj->sprite.src = {
+        static_cast<float>(tile->x),
+    static_cast<float>(tile->y),
+    static_cast<float>(tile->w),
+    static_cast<float>(tile->h)
+    };
+
     gm->platforms.push_back(std::move(obj));
+
     return gm->platforms.back().get();
 }
 
@@ -84,6 +98,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     SDL_SetAppMetadata("Example Renderer Clear", "1.0", "com.example.renderer-clear");
 
     auto state = std::make_unique<GameManager>();
+    state->player = std::make_unique<GameObject>(1,1);
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
 
@@ -104,15 +119,28 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
                                      SDL_LOGICAL_PRESENTATION_DISABLED);
 
     SDL_GetWindowSize(state->window, &state->width, &state->height);
-    state->player.x = state->width / 2.0f;
-    state->player.y = state->height / 2.0f;
+    state->player->x = state->width / 2.0f;
+    state->player->y = state->height / 2.0f;
     std::cout << "w/h " << state->width << ":" << state->height << std::endl;
     const char *n = SDL_GetRendererName(state->renderer);
     std::cout << "Renderer name: " << n << std::endl;
     state->bgGradient = CreateGradient(state->renderer, state->width, state->height);
-    GameObject* gm1 = AddPlatform(state.get(), 0, (float)state->height-40, Sprites::Objects_82);
-    GameObject* gm2 = AddPlatform(state.get(), 20, (float)state->height-40, Sprites::Objects_82);
-    GameObject* gm3 = AddPlatform(state.get(), 40, (float)state->height-40, Sprites::Objects_82);
+
+    GameObject* gm8 = AddPlatform(state.get(), 600, (float)state->height-200, sprites::TILESET::getSprite("BothSideProtrusion"));
+    gm8->collider.boxes.push_back({
+    60.f, 0.f,
+    static_cast<float>(gm8->width + 60), static_cast<float>(gm8->height + 80)
+    });
+    gm8->collider.boxes.push_back({
+    0.f, 55.f,
+    static_cast<float>(gm8->width + 60), static_cast<float>(gm8->height + 50)
+    });
+    gm8->collider.boxes.push_back({
+    130.f, 55.f,
+    static_cast<float>(gm8->width + 60), static_cast<float>(gm8->height + 50)
+    });
+
+    // GameObject* gm3 = AddPlatform(state.get(), 40, (float)state->height-40, Sprites::Objects_82);
     state->mainTex.reset(IMG_LoadTexture(state->renderer, "assets/images/main_asset.png"));
     if (!state->mainTex) {
         SDL_Log("Failed to load image: %s", SDL_GetError());
@@ -138,14 +166,14 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
         switch (event->key.key) {
             case SDLK_SPACE:
                 state->jumpPressed = true;
-                std::cout << "press key space " << state->player.y << std::endl;
+                std::cout << "press key space " << state->player->y << std::endl;
                 return SDL_APP_CONTINUE;
             case SDLK_LEFT:
-                std::cout << "press key " << state->player.y << std::endl;
+                std::cout << "press key " << state->player->y << std::endl;
                 state->moveLeft = true;
                 return SDL_APP_CONTINUE;
             case SDLK_RIGHT:
-                std::cout << "press key " << state->player.y << std::endl;
+                std::cout << "press key " << state->player->y << std::endl;
                 state->moveRight = true;
                 return SDL_APP_CONTINUE;
             default:
@@ -183,25 +211,25 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         float moveDir = 0.0f;
         if (state->moveLeft) moveDir -= 1.0f;
         if (state->moveRight) moveDir += 1.0f;
-        if (state->player.rb) {
-            state->player.rb->velocityX = moveDir * GameConfig::move_speed;
+        if (state->player->rb) {
+            state->player->rb->velocityX = moveDir * GameConfig::move_speed;
         }
         if (state->jumpPressed) {
-            state->player.jump(GameConfig::jump_power);
+            state->player->jump(GameConfig::jump_power);
             state->jumpPressed = false;
         }
-        state->player.update(GameConfig::fixed_dt);
+        state->player->update(GameConfig::fixed_dt);
         state->accumulator -= GameConfig::fixed_dt;
     }
 
     float scrollThreshold = state->width / 3.0f;
-    if (state->player.x - state->worldOffsetX > scrollThreshold) {
-        state->worldOffsetX = state->player.x - scrollThreshold;
+    if (state->player->x - state->worldOffsetX > scrollThreshold) {
+        state->worldOffsetX = state->player->x - scrollThreshold;
     }
 
     SDL_RenderTexture(state->renderer, state->bgGradient.get(), NULL, NULL);
     for (auto& plat:state->platforms) {
-        plat->draw(state->renderer);
+        plat->draw(state->renderer, true);
     }
     // int numBlocks = (int) ceil(state->width / dst.w) + 1; // сколько блоков нужно
     // int firstBlockIndex = (int) (state->worldOffsetX / blockWidth);
@@ -215,7 +243,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     //         SDL_RenderTexture(state->renderer, state->mainTex.get(), &src, &block);
     //     }
     // }
-    state->player.draw(state->renderer);
+    state->player->draw(state->renderer);
 
     SDL_RenderPresent(state->renderer);
     return SDL_APP_CONTINUE;
