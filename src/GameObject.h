@@ -7,10 +7,11 @@
 #include <cstdint>
 #include <memory>
 
-#include "Collider.h"
+
 #include "config.h"
 #include "RigidBody.h"
 #include "SDL3/SDL_render.h"
+#include "Collider.h"
 
 struct Sprite {
     SDL_Texture* texture = nullptr;
