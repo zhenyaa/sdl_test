@@ -5,7 +5,7 @@
 #ifndef SDL_TEST_COLLIDER_H
 #define SDL_TEST_COLLIDER_H
 #include <vector>
-
+class GameObject;
 
 struct BoxCollider {
     float ox, oy;
@@ -14,10 +14,9 @@ struct BoxCollider {
 
 class Collider {
     public:
-    std::vector<BoxCollider> boxes;
     bool solid = false;
-
-    // bool collisionDetection(const GameObject* selfObj, const GameObject* otherObj) const;
+    std::vector<BoxCollider> boxes;
+    static bool collisionDetection(const GameObject* obj, const GameObject* otherObj);
 };
 
 

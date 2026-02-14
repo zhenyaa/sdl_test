@@ -78,3 +78,7 @@ bool GameObject::loadSprite(SDL_Renderer* renderer, const char* path, SDL_FRect 
     return true;
 }
 
+void GameObject::onCollision(GameObject *collider) {
+    SDL_Log("Collision detected");
+}
+

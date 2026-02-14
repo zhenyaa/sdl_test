@@ -50,6 +50,7 @@ public:
 
     void jump(float power= 400.f);
     bool loadSprite(SDL_Renderer* renderer, const char* path, SDL_FRect srcRect);
+    void onCollision(GameObject* collider);
 };
 
 

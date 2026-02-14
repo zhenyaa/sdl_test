@@ -99,6 +99,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
     auto state = std::make_unique<GameManager>();
     state->player = std::make_unique<GameObject>(1,1);
+    state->player->collider.boxes.push_back(
+        {0.f, 0.f, 50.f, 50.f}
+        );
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
 
@@ -220,6 +223,14 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         }
         state->player->update(GameConfig::fixed_dt);
         state->accumulator -= GameConfig::fixed_dt;
+    }
+
+    for (auto& platform : state->platforms) {
+        if (state->player->collider.collisionDetection(state->player.get(), platform.get())) {
+            // Обработка коллизии
+            // Например, остановить падение игрока или поправить позицию
+            state->player->onCollision(platform.get());
+        }
     }
 
     float scrollThreshold = state->width / 3.0f;
