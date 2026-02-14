@@ -227,8 +227,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     for (auto& platform : state->platforms) {
         if (state->player->collider.collisionDetection(state->player.get(), platform.get())) {
-            // Обработка коллизии
-            // Например, остановить падение игрока или поправить позицию
             state->player->onCollision(platform.get());
         }
     }
@@ -254,7 +252,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     //         SDL_RenderTexture(state->renderer, state->mainTex.get(), &src, &block);
     //     }
     // }
-    state->player->draw(state->renderer);
+    state->player->draw(state->renderer, true);
 
     SDL_RenderPresent(state->renderer);
     return SDL_APP_CONTINUE;

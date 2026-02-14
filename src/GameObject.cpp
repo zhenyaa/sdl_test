@@ -56,6 +56,8 @@ void GameObject::update(float dt) {
 }
 
 void GameObject::jump(float power) {
+    if (!rb->onGround) return;
+    rb->onGround = false;
     std::cout << "jumping" << std::endl;
     rb->velocityY = -power;
     std::cout << "velocity: " << rb->velocityY << std::endl;
@@ -78,7 +80,8 @@ bool GameObject::loadSprite(SDL_Renderer* renderer, const char* path, SDL_FRect 
     return true;
 }
 
-void GameObject::onCollision(GameObject *collider) {
+void GameObject::onCollision(GameObject *otherObj) {
     SDL_Log("Collision detected");
+    rb->onGround = true;
 }
 

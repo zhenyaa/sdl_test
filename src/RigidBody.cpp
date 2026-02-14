@@ -8,6 +8,7 @@
 #include "config.h"
 void RigidBody::update(float dt) {
     if (!obj) return;
+    if (onGround) return;
     velocityY += gravity * dt;
     obj->x += static_cast<int>(velocityX * dt);
     obj->y += static_cast<int>(velocityY * dt);

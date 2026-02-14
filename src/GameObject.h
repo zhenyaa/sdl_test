@@ -28,6 +28,7 @@ public:
     int y;
     int height;
     int width;
+
     std::unique_ptr<RigidBody> rb;
     Sprite sprite;
     Collider collider;
@@ -50,7 +51,7 @@ public:
 
     void jump(float power= 400.f);
     bool loadSprite(SDL_Renderer* renderer, const char* path, SDL_FRect srcRect);
-    void onCollision(GameObject* collider);
+    void onCollision(GameObject* otherObj);
 };
 
 

@@ -10,6 +10,7 @@ class RigidBody {
     protected:
 
     public:
+        bool onGround = false;
         float gravity = 600.0f;
         float velocityY = 1.0f;
         float velocityX = 0.0f;
