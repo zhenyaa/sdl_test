@@ -42,6 +42,8 @@ add_custom_command(TARGET sdl_test POST_BUILD
         ${CMAKE_SOURCE_DIR}/src/assets $<TARGET_FILE_DIR:sdl_test>/assets
 )
 
+
+
 target_link_libraries(sdl_test
         PRIVATE
         SDL3::SDL3
@@ -59,6 +61,10 @@ add_executable(prefab_generator
         src/sprites.h
         src/generated_sprites.h
         src/PrefabGenerator.cpp
+)
+add_custom_command(TARGET prefab_generator POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/src/assets $<TARGET_FILE_DIR:sdl_test>/assets
 )
 target_link_libraries(prefab_generator
         PRIVATE

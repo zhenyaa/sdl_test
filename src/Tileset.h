@@ -15,11 +15,11 @@ public:
     static constexpr int SPRITE_COUNT = 24;
     
     static const SpriteInfo sprites[25];
-    static const SpriteInfo* getSprite(const char* name);
+    inline static const SpriteInfo* getSprite(const char* name);
 };
 
 // Sprite definitions
-const SpriteInfo TILESET::sprites[] = {
+inline const SpriteInfo TILESET::sprites[] = {
     {"BigGrassSpike", 584, 0, 192, 64},
     {"BigWhole", 486, 0, 96, 144},
     {"BigWhole2", 162, 0, 160, 144},
