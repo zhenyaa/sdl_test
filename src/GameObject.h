@@ -39,6 +39,11 @@ public:
     GameObject(int x, int y, float scale) : x(x), y(y), width(10), height(10), scale(scale) {
         rb = std::make_unique<RigidBody>(this, GameConfig::gravity);
     };
+    GameObject(int x, int y, float scale, std::initializer_list<BoxCollider> boxes) : x(x), y(y), width(10), height(10), scale(scale)  {
+        rb = std::make_unique<RigidBody>(this, GameConfig::gravity);
+        collider.boxes = boxes;
+        collider.solid = true;
+    };
 
     // GameObject(int x, int y) : x(x), y(y), width(10), height(10), D(10) {
     //     rb = std::make_unique<RigidBody>(this, GameConfig::gravity);

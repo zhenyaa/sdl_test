@@ -6,8 +6,10 @@
 #include <memory>
 #include <SDL3/SDL.h>
 #include <vector>
-
+#include <ostream>
+#include <nlohmann/json.hpp>
 #include "Tileset.h"
+#include <fstream>
 
 #include "SDL3_image/SDL_image.h"
 
@@ -17,6 +19,74 @@ struct BoxCollider {
 const char * basePath;
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
+
+struct CellOfPixels {
+    int x, y;
+    int step;
+    int r, g, b, a;
+};
+
+CellOfPixels processPixelsToCell(
+    SDL_Surface* surface,
+    const SDL_PixelFormatDetails* fmt,
+    const SDL_FRect& srcRect,
+    int blockSize,
+    int bx,
+    int by)
+{
+    uint64_t sumR = 0;
+    uint64_t sumG = 0;
+    uint64_t sumB = 0;
+    uint64_t sumA = 0;
+
+    int count = 0;
+
+    for (int y = 0; y < blockSize; y++) {
+        for (int x = 0; x < blockSize; x++) {
+
+            int px = static_cast<int>(srcRect.x) + bx + x;
+            int py = static_cast<int>(srcRect.y) + by + y;
+
+            Uint32* pixel = (Uint32*)(
+                (Uint8*)surface->pixels +
+                py * surface->pitch +
+                px * fmt->bytes_per_pixel
+            );
+
+            Uint8 r, g, b, a;
+
+            SDL_GetRGBA(
+                *pixel,
+                fmt,
+                SDL_GetSurfacePalette(surface),
+                &r, &g, &b, &a
+            );
+
+            sumR += r;
+            sumG += g;
+            sumB += b;
+            sumA += a;
+
+            count++;
+        }
+    }
+
+    // Среднее значение
+    Uint8 avgR = sumR / count;
+    Uint8 avgG = sumG / count;
+    Uint8 avgB = sumB / count;
+    Uint8 avgA = sumA / count;
+
+    return CellOfPixels(
+        bx,        // позиция блока
+        by,
+        blockSize,
+        avgR,
+        avgG,
+        avgB,
+        avgA
+    );
+}
 
 const sprites::SpriteInfo *IterSprite(bool reset = false) {
     static int index = 0;
@@ -66,34 +136,38 @@ int main(int argc, char** argv) {
         SDL_Quit();
         return 1;
     }
+    nlohmann::json j;
 
     tryAgain:
     SDL_FRect srcRect;
     auto* BigGrassSpike = IterSprite();
+
+    if (BigGrassSpike == nullptr) {
+        auto path = SDL_GetBasePath();
+        std::ofstream file("/prefubs.json");
+        file << j;
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        file.close();
+        return 0;
+    }
     srcRect.x = BigGrassSpike->x;
     srcRect.y = BigGrassSpike->y;
     srcRect.w = BigGrassSpike->w;
     srcRect.h = BigGrassSpike->h;
+    SDL_FRect dstRect = { 100.f, 100.f, srcRect.w, srcRect.h };
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     std::vector<BoxCollider> colliders;
-    SDL_FRect dstRect = { 100.f, 100.f, srcRect.w, srcRect.h };
     int blockSize = 16;
-    for (int by = 0; by < srcRect.h; by += blockSize) {
-        for (int bx = 0; bx < srcRect.w; bx += blockSize) {
-            bool hasOpaque = false;
-            for (int y = 0; y < blockSize && by + y < srcRect.h && !hasOpaque; y++) {
-                Uint8* row = static_cast<Uint8*>(surface->pixels) + (static_cast<int>(srcRect.y) + by + y) * surface->pitch;
-                Uint32* pixelsRow = reinterpret_cast<Uint32*>(row);
-                for (int x = 0; x < blockSize && bx + x < srcRect.w; x++) {
-                    Uint32 pixel = pixelsRow[static_cast<int>(srcRect.x) + bx + x];
-                    Uint8 r,g,b,a;
-                    const SDL_PixelFormatDetails* fmt = SDL_GetPixelFormatDetails(surface->format);
-                    SDL_GetRGBA(pixel, fmt, SDL_GetSurfacePalette(surface), &r,&g,&b,&a);
-                    if (a > 0) { hasOpaque = true; break; }
-                }
-            }
-            if (hasOpaque) {
-                colliders.push_back({float(bx), float(by), float(blockSize), float(blockSize)});
+    const SDL_PixelFormatDetails* fmt = SDL_GetPixelFormatDetails(texture->format);
+    for (int blockY=0; blockY < static_cast<int>(srcRect.h); blockY += blockSize) { // iterate by vertical line with step in blockSize
+        for (int blockX=0; blockX < static_cast<int>(srcRect.w); blockX += blockSize) { //iterate by evry cell by horizont with step in blockSize
+            SDL_Log("vertical: %d, horizont %d", blockY, blockX);
+            auto block = processPixelsToCell(surface, fmt, srcRect, blockSize, blockX, blockY);
+            SDL_Log("block r: %d, g: %d, b: %d, a: %d", block.r, block.g, block.b, block.a);
+            if (block.a > 80) {
+                colliders.push_back({static_cast<float>(block.x), static_cast<float>(block.y), static_cast<float>(blockSize) * dstRect.w / srcRect.w, static_cast<float>(blockSize) * dstRect.h / srcRect.h});
             }
         }
     }
@@ -113,11 +187,22 @@ int main(int argc, char** argv) {
         SDL_RenderTexture(renderer, texture, &srcRect, &dstRect);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 180);
-        SDL_Log("Colliders q= %d", static_cast<int>(colliders.size()));
+        // SDL_Log("Colliders q= %d", static_cast<int>(colliders.size()));
+        nlohmann::json collidersJson = nlohmann::json::array();
         for (auto& collider : colliders) {
             SDL_FRect r = { dstRect.x + collider.ox, dstRect.y + collider.oy, collider.w, collider.h };
+            collidersJson.push_back({
+                  {"x", collider.ox},
+                  {"y", collider.oy},
+                  {"w", collider.w},
+                  {"h", collider.h}
+              });
             SDL_RenderRect(renderer, &r);
+
         }
+        // SDL_Log("name of sprite %s", BigGrassSpike->name);
+        j[BigGrassSpike->name]["colliders"] = collidersJson;
+        SDL_Log("data json %s",j.dump(2).c_str());
         SDL_RenderPresent(renderer);
         SDL_Delay(1000); // ~60fps
         goto tryAgain;
@@ -126,6 +211,5 @@ int main(int argc, char** argv) {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
-
     return 0;
 }

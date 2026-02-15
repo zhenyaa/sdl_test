@@ -33,9 +33,9 @@ struct GameManager {
     bool jumpPressed = false;
 };
 
-GameObject* AddPlatform(GameManager* gm, float x, float y, const sprites::SpriteInfo* tile)
+GameObject* AddPlatform(GameManager* gm, float x, float y, const sprites::SpriteInfo* tile, std::initializer_list<BoxCollider> boxes)
 {
-    auto obj = std::make_unique<GameObject>(x, y, 2.f);
+    auto obj = std::make_unique<GameObject>(x, y, 2.f, boxes);
 
     std::stringstream ss;
     ss << "assets/images/TILED_files/sprite_sheet2.png";
@@ -48,9 +48,9 @@ GameObject* AddPlatform(GameManager* gm, float x, float y, const sprites::Sprite
     }
     obj->sprite.src = {
         static_cast<float>(tile->x),
-    static_cast<float>(tile->y),
-    static_cast<float>(tile->w),
-    static_cast<float>(tile->h)
+        static_cast<float>(tile->y),
+        static_cast<float>(tile->w),
+        static_cast<float>(tile->h)
     };
 
     gm->platforms.push_back(std::move(obj));
@@ -128,20 +128,21 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     const char *n = SDL_GetRendererName(state->renderer);
     std::cout << "Renderer name: " << n << std::endl;
     state->bgGradient = CreateGradient(state->renderer, state->width, state->height);
+    auto tile = sprites::TILESET::getSprite("BothSideProtrusion");
+    float w = tile->w;
+    float h = tile->h;
+    GameObject* gm8 = AddPlatform(
+        state.get(),
+        600,
+        (float)state->height-200,
+        tile,
+  {
+        { 60.f,  0.f,  w + 60.f, h + 80.f },
+        {  0.f, 55.f,  w + 60.f, h + 50.f },
+        {130.f, 55.f,  w + 60.f, h + 50.f }
+        }
+    );
 
-    GameObject* gm8 = AddPlatform(state.get(), 600, (float)state->height-200, sprites::TILESET::getSprite("BothSideProtrusion"));
-    gm8->collider.boxes.push_back({
-    60.f, 0.f,
-    static_cast<float>(gm8->width + 60), static_cast<float>(gm8->height + 80)
-    });
-    gm8->collider.boxes.push_back({
-    0.f, 55.f,
-    static_cast<float>(gm8->width + 60), static_cast<float>(gm8->height + 50)
-    });
-    gm8->collider.boxes.push_back({
-    130.f, 55.f,
-    static_cast<float>(gm8->width + 60), static_cast<float>(gm8->height + 50)
-    });
 
     // GameObject* gm3 = AddPlatform(state.get(), 40, (float)state->height-40, Sprites::Objects_82);
     state->mainTex.reset(IMG_LoadTexture(state->renderer, "assets/images/main_asset.png"));

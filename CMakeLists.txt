@@ -35,6 +35,8 @@ add_executable(sdl_test
         src/Collider.h
         src/PrefabProccessor.cpp
         src/PrefabProccessor.h
+        src/Vec2.cpp
+        src/Vec2.h
 )
 
 add_custom_command(TARGET sdl_test POST_BUILD
@@ -61,6 +63,8 @@ add_executable(prefab_generator
         src/sprites.h
         src/generated_sprites.h
         src/PrefabGenerator.cpp
+        src/Vec2.cpp
+        src/Vec2.h
 )
 add_custom_command(TARGET prefab_generator POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
