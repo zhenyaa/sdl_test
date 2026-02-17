@@ -33,10 +33,10 @@ add_executable(sdl_test
         src/Tileset.h
         src/Collider.cpp
         src/Collider.h
-        src/PrefabProccessor.cpp
-        src/PrefabProccessor.h
         src/Vec2.cpp
         src/Vec2.h
+        src/GameManager.cpp
+        src/GameManager.h
 )
 
 add_custom_command(TARGET sdl_test POST_BUILD
@@ -56,8 +56,6 @@ target_link_libraries(sdl_test
 add_executable(prefab_generator
         src/PrefabGenerator.cpp
         src/utils.cpp
-        src/PrefabProccessor.cpp
-        src/PrefabProccessor.h
         src/Collider.cpp
         src/Collider.h
         src/sprites.h
@@ -65,6 +63,12 @@ add_executable(prefab_generator
         src/PrefabGenerator.cpp
         src/Vec2.cpp
         src/Vec2.h
+        src/GameObjectFactory.cpp
+        src/GameObjectFactory.h
+        src/PrefabProcessor.cpp
+        src/PrefabProcessor.h
+        src/GameManager.cpp
+        src/GameManager.h
 )
 add_custom_command(TARGET prefab_generator POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory

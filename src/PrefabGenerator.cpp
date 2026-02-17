@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
 
     if (BigGrassSpike == nullptr) {
         auto path = SDL_GetBasePath();
-        std::ofstream file("/prefubs.json");
+        std::ofstream file("./prefubs.json");
         file << j;
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);

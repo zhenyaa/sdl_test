@@ -1,14 +1,12 @@
 //
-// Created by zhenya on 14.02.2026.
+// Created by zhenya on 17.02.2026.
 //
 
-#ifndef SDL_TEST_PREFABPROCCESSOR_H
-#define SDL_TEST_PREFABPROCCESSOR_H
-#include <nlohmann/json.hpp>
-#include "Collider.h"
-#include "Tileset.h"
+#ifndef SDL_TEST_PREFABPROCESSOR_H
+#define SDL_TEST_PREFABPROCESSOR_H
+#include <iostream>
 
-class PrefabProccessor {
+class PrefabProcessor {
 public:
     struct Prefab {
         std::string name;
@@ -16,6 +14,7 @@ public:
         std::vector<BoxCollider> colliders;
         bool hasRigidBody = true;
     };
+    static get(const std::string prefab_name);
 
     // загрузить JSON-файл с префабами
     static std::vector<Prefab> loadFromFile(const std::string& path);
@@ -25,4 +24,4 @@ public:
 };
 
 
-#endif //SDL_TEST_PREFABPROCCESSOR_H
+#endif //SDL_TEST_PREFABPROCESSOR_H

@@ -14,60 +14,58 @@
 #include "Tileset.h"
 #include <sstream>
 #include "utils.h"
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include "GameManager.h"
 
+// struct GameManager {
+//     SDL_Window* window = nullptr;
+//     SDL_Renderer* renderer = nullptr;
+//     int width = 0;
+//     int height = 0;
+//     std::vector<std::unique_ptr<GameObject>> platforms;
+//     TexturePtr bgGradient;
+//     TexturePtr mainTex;
+//     float worldOffsetX = 0.0f;
+//     Uint64 lastTick = 0;
+//     float accumulator = 0.0f;
+//     bool moveLeft = false;
+//     bool moveRight = false;
+//     bool jumpPressed = false;
+// };
 
-struct GameManager {
-    SDL_Window* window = nullptr;
-    SDL_Renderer* renderer = nullptr;
-    int width = 0;
-    int height = 0;
-    std::unique_ptr<GameObject> player;
-    std::vector<std::unique_ptr<GameObject>> platforms;
-    TexturePtr bgGradient;
-    TexturePtr mainTex;
-    float worldOffsetX = 0.0f;
-    Uint64 lastTick = 0;
-    float accumulator = 0.0f;
-    bool moveLeft = false;
-    bool moveRight = false;
-    bool jumpPressed = false;
-};
+// GameObject* AddPlatform(GameManager* gm, float x, float y, const sprites::SpriteInfo* tile, const std::vector<BoxCollider>& boxes)
+// {
+//     auto obj = std::make_unique<GameObject>(x, y, 2.f, boxes);
+//     const std::string SPRITE_PATH = "assets/images/TILED_files/sprite_sheet2.png";
+//     obj->sprite.texture = IMG_LoadTexture(gm->renderer, SPRITE_PATH.c_str());
+//     if (!obj->sprite.texture)
+//     {
+//         SDL_Log("Failed to load texture: %s", SDL_GetError());
+//         return nullptr;
+//     }
+//     obj->sprite.src = {
+//         static_cast<float>(tile->x),
+//         static_cast<float>(tile->y),
+//         static_cast<float>(tile->w),
+//         static_cast<float>(tile->h)
+//     };
+//
+//     gm->platforms.push_back(std::move(obj));
+//
+//     return gm->platforms.back().get();
+// }
 
-GameObject* AddPlatform(GameManager* gm, float x, float y, const sprites::SpriteInfo* tile, std::initializer_list<BoxCollider> boxes)
-{
-    auto obj = std::make_unique<GameObject>(x, y, 2.f, boxes);
-
-    std::stringstream ss;
-    ss << "assets/images/TILED_files/sprite_sheet2.png";
-    std::string path = ss.str();
-    obj->sprite.texture = IMG_LoadTexture(gm->renderer, path.c_str());
-    if (!obj->sprite.texture)
-    {
-        SDL_Log("Failed to load texture: %s", SDL_GetError());
-        return nullptr;
-    }
-    obj->sprite.src = {
-        static_cast<float>(tile->x),
-        static_cast<float>(tile->y),
-        static_cast<float>(tile->w),
-        static_cast<float>(tile->h)
-    };
-
-    gm->platforms.push_back(std::move(obj));
-
-    return gm->platforms.back().get();
-}
-
-static int SDLCALL TestThread(void *ptr) {
-    int cnt;
-
-    for (cnt = 0; cnt < 10; ++cnt) {
-        // SDL_Log("Thread counter: %d", cnt);
-        SDL_Delay(1000);
-    }
-
-    return cnt;
-}
+// static int SDLCALL TestThread(void *ptr) {
+//     int cnt;
+//
+//     for (cnt = 0; cnt < 10; ++cnt) {
+//         // SDL_Log("Thread counter: %d", cnt);
+//         SDL_Delay(1000);
+//     }
+//
+//     return cnt;
+// }
 
 TexturePtr CreateGradient(SDL_Renderer *r, int w, int h) {
     SDL_Texture *raw = SDL_CreateTexture(
@@ -96,63 +94,49 @@ TexturePtr CreateGradient(SDL_Renderer *r, int w, int h) {
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     SDL_SetAppMetadata("Example Renderer Clear", "1.0", "com.example.renderer-clear");
-
     auto state = std::make_unique<GameManager>();
-    state->player = std::make_unique<GameObject>(1,1);
-    state->player->collider.boxes.push_back(
-        {0.f, 0.f, 50.f, 50.f}
-        );
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
-
+    if (!state->init(GameConfig::window_width, GameConfig::window_height)) {
         return SDL_APP_FAILURE;
     }
+    state->spawnPlayer(1,1);
 
+    // state->bgGradient = CreateGradient(state->renderer, state->width, state->height);
+    // auto tile = sprites::TILESET::getSprite("GrassMedium");
+    // auto prefab = FileUtils::loadJSON("./prefubs.json", tile->name);
+    // if (!prefab) {
+    //     return SDL_APP_FAILURE;
+    // }
+    // auto& colliders = (*prefab)["colliders"];
+    // std::vector<BoxCollider> boxes;
+    //
+    // for (auto& c : colliders) {
+    //     boxes.push_back({
+    //         c.value("x", 0.f),
+    //         c.value("y", 0.f),
+    //          c.value("w", 0.f),
+    //          c.value("h", 0.f)
+    //     });
+    // }
+    // // float w = tile->w;
+    // // float h = tile->h;
+    // GameObject* gm8 = AddPlatform(
+    //     state.get(),
+    //     600,
+    //     (float)state->height-200,
+    //     tile,
+    //     boxes
+    // );
+    //
+    //
+    // // GameObject* gm3 = AddPlatform(state.get(), 40, (float)state->height-40, Sprites::Objects_82);
+    // state->mainTex.reset(IMG_LoadTexture(state->renderer, "assets/images/main_asset.png"));
+    // if (!state->mainTex) {
+    //     SDL_Log("Failed to load image: %s", SDL_GetError());
+    // } else {
+    //     SDL_Log("Image loaded successfully!");
+    // }
 
-    if (!SDL_CreateWindowAndRenderer("examples/renderer/clear",
-                                     GameConfig::window_width,
-                                     GameConfig::window_height,
-                                     SDL_WINDOW_RESIZABLE,
-                                     &state->window,
-                                     &state->renderer)) {
-        SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-    SDL_SetRenderLogicalPresentation(state->renderer, GameConfig::window_width, GameConfig::window_height,
-                                     SDL_LOGICAL_PRESENTATION_DISABLED);
-
-    SDL_GetWindowSize(state->window, &state->width, &state->height);
-    state->player->x = state->width / 2.0f;
-    state->player->y = state->height / 2.0f;
-    std::cout << "w/h " << state->width << ":" << state->height << std::endl;
-    const char *n = SDL_GetRendererName(state->renderer);
-    std::cout << "Renderer name: " << n << std::endl;
-    state->bgGradient = CreateGradient(state->renderer, state->width, state->height);
-    auto tile = sprites::TILESET::getSprite("BothSideProtrusion");
-    float w = tile->w;
-    float h = tile->h;
-    GameObject* gm8 = AddPlatform(
-        state.get(),
-        600,
-        (float)state->height-200,
-        tile,
-  {
-        { 60.f,  0.f,  w + 60.f, h + 80.f },
-        {  0.f, 55.f,  w + 60.f, h + 50.f },
-        {130.f, 55.f,  w + 60.f, h + 50.f }
-        }
-    );
-
-
-    // GameObject* gm3 = AddPlatform(state.get(), 40, (float)state->height-40, Sprites::Objects_82);
-    state->mainTex.reset(IMG_LoadTexture(state->renderer, "assets/images/main_asset.png"));
-    if (!state->mainTex) {
-        SDL_Log("Failed to load image: %s", SDL_GetError());
-    } else {
-        SDL_Log("Image loaded successfully!");
-    }
-
-    state->lastTick = SDL_GetTicks();
+    // state->lastTick = SDL_GetTicks();
     *appstate = state.release();
     return SDL_APP_CONTINUE;
 }
@@ -160,87 +144,114 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     auto *state = static_cast<GameManager*>(appstate);
-    if (event->type == SDL_EVENT_QUIT) {
-        return SDL_APP_SUCCESS; // end the program
+    switch (event->type) {
+        case SDL_EVENT_QUIT:
+            return SDL_APP_SUCCESS;
+
+        case SDL_EVENT_WINDOW_RESIZED:
+            state->handleSystemEvent(event);
+            break;
+
+        default:
+            break;
     }
-    if (event->type == SDL_EVENT_WINDOW_RESIZED) {
-        SDL_GetWindowSize(state->window, &state->width, &state->height);
-    }
-    if (event->type == SDL_EVENT_KEY_DOWN) {
-        switch (event->key.key) {
-            case SDLK_SPACE:
-                state->jumpPressed = true;
-                std::cout << "press key space " << state->player->y << std::endl;
-                return SDL_APP_CONTINUE;
-            case SDLK_LEFT:
-                std::cout << "press key " << state->player->y << std::endl;
-                state->moveLeft = true;
-                return SDL_APP_CONTINUE;
-            case SDLK_RIGHT:
-                std::cout << "press key " << state->player->y << std::endl;
-                state->moveRight = true;
-                return SDL_APP_CONTINUE;
-            default:
-                return SDL_APP_CONTINUE;
-        }
-    }
-    if (event->type == SDL_EVENT_KEY_UP) {
-        switch (event->key.key) {
-            case SDLK_LEFT:
-                state->moveLeft = false;
-                return SDL_APP_CONTINUE;
-            case SDLK_RIGHT:
-                state->moveRight = false;
-                return SDL_APP_CONTINUE;
-            default:
-                return SDL_APP_CONTINUE;
-        }
+
+    // --- игровые события ---
+    if (event->type == SDL_EVENT_KEY_DOWN || event->type == SDL_EVENT_KEY_UP) {
+        state->handleGameEvent(event);
     }
 
     return SDL_APP_CONTINUE;
+    // if (event->type == SDL_EVENT_QUIT) {
+    //     return SDL_APP_SUCCESS; // end the program
+    // }
+    // if (event->type == SDL_EVENT_WINDOW_RESIZED) {
+    //     state->handleEvent(event);
+    //     // SDL_GetWindowSize(state->window, &state->width, &state->height);
+    // }
+    // if (event->type == SDL_EVENT_KEY_DOWN) {
+    //     state->handleEvent(event);
+    //     // switch (event->key.key) {
+    //     //     case SDLK_SPACE:
+    //     //         state->jumpPressed = true;
+    //     //         std::cout << "press key space " << state->player->y << std::endl;
+    //     //         return SDL_APP_CONTINUE;
+    //     //     case SDLK_LEFT:
+    //     //         std::cout << "press key " << state->player->y << std::endl;
+    //     //         state->moveLeft = true;
+    //     //         return SDL_APP_CONTINUE;
+    //     //     case SDLK_RIGHT:
+    //     //         std::cout << "press key " << state->player->y << std::endl;
+    //     //         state->moveRight = true;
+    //     //         return SDL_APP_CONTINUE;
+    //     //     default:
+    //     //         return SDL_APP_CONTINUE;
+    //     // }
+    // }
+    // if (event->type == SDL_EVENT_KEY_UP) {
+    //     state->handleEvent(event);
+    //     // switch (event->key.key) {
+    //     //     case SDLK_LEFT:
+    //     //         state->moveLeft = false;
+    //     //         return SDL_APP_CONTINUE;
+    //     //     case SDLK_RIGHT:
+    //     //         state->moveRight = false;
+    //     //         return SDL_APP_CONTINUE;
+    //     //     default:
+    //     //         return SDL_APP_CONTINUE;
+    //     // }
+    // }
+    //
+    // return SDL_APP_CONTINUE;
 }
 
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate) {
     auto *state = static_cast<GameManager*>(appstate);
-    Uint64 now = SDL_GetTicks();
-    float frameDt = (now - state->lastTick) / 1000.0f;
-    state->lastTick = now;
-    if (frameDt > GameConfig::max_frame_dt) {
-        frameDt = GameConfig::max_frame_dt;
+    if (!state) {
+        SDL_Log("cant get GameManager");
     }
-    state->accumulator += frameDt;
-
-    while (state->accumulator >= GameConfig::fixed_dt) {
-        float moveDir = 0.0f;
-        if (state->moveLeft) moveDir -= 1.0f;
-        if (state->moveRight) moveDir += 1.0f;
-        if (state->player->rb) {
-            state->player->rb->velocityX = moveDir * GameConfig::move_speed;
-        }
-        if (state->jumpPressed) {
-            state->player->jump(GameConfig::jump_power);
-            state->jumpPressed = false;
-        }
-        state->player->update(GameConfig::fixed_dt);
-        state->accumulator -= GameConfig::fixed_dt;
-    }
-
-    for (auto& platform : state->platforms) {
-        if (state->player->collider.collisionDetection(state->player.get(), platform.get())) {
-            state->player->onCollision(platform.get());
-        }
-    }
-
-    float scrollThreshold = state->width / 3.0f;
-    if (state->player->x - state->worldOffsetX > scrollThreshold) {
-        state->worldOffsetX = state->player->x - scrollThreshold;
-    }
-
-    SDL_RenderTexture(state->renderer, state->bgGradient.get(), NULL, NULL);
-    for (auto& plat:state->platforms) {
-        plat->draw(state->renderer, true);
-    }
+    state->updateTick(SDL_GetTicks());
+    state->update();
+    state->render();
+    // Uint64 now = SDL_GetTicks();
+    // float frameDt = (now - state->lastTick) / 1000.0f;
+    // state->lastTick = now;
+    // if (frameDt > GameConfig::max_frame_dt) {
+    //     frameDt = GameConfig::max_frame_dt;
+    // }
+    // state->accumulator += frameDt;
+    //
+    // while (state->accumulator >= GameConfig::fixed_dt) {
+    //     float moveDir = 0.0f;
+    //     if (state->moveLeft) moveDir -= 1.0f;
+    //     if (state->moveRight) moveDir += 1.0f;
+    //     if (state->player->rb) {
+    //         state->player->rb->velocityX = moveDir * GameConfig::move_speed;
+    //     }
+    //     if (state->jumpPressed) {
+    //         state->player->jump(GameConfig::jump_power);
+    //         state->jumpPressed = false;
+    //     }
+    //     state->player->update(GameConfig::fixed_dt);
+    //     state->accumulator -= GameConfig::fixed_dt;
+    // }
+    //
+    // for (auto& platform : state->platforms) {
+    //     if (state->player->collider.collisionDetection(state->player.get(), platform.get())) {
+    //         state->player->onCollision(platform.get());
+    //     }
+    // }
+    //
+    // float scrollThreshold = state->width / 3.0f;
+    // if (state->player->x - state->worldOffsetX > scrollThreshold) {
+    //     state->worldOffsetX = state->player->x - scrollThreshold;
+    // }
+    //
+    // SDL_RenderTexture(state->renderer, state->bgGradient.get(), NULL, NULL);
+    // for (auto& plat:state->platforms) {
+    //     plat->draw(state->renderer, true);
+    // }
     // int numBlocks = (int) ceil(state->width / dst.w) + 1; // сколько блоков нужно
     // int firstBlockIndex = (int) (state->worldOffsetX / blockWidth);
     // for (int i = 0; i < numBlocks; i++) {
@@ -253,22 +264,15 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     //         SDL_RenderTexture(state->renderer, state->mainTex.get(), &src, &block);
     //     }
     // }
-    state->player->draw(state->renderer, true);
-
-    SDL_RenderPresent(state->renderer);
+    // state->player->draw(state->renderer, true);
+    //
+    // SDL_RenderPresent(state->renderer);
     return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     std::unique_ptr<GameManager> state{static_cast<GameManager*>(appstate)};
-    if (state) {
-        if (state->renderer) {
-            SDL_DestroyRenderer(state->renderer);
-        }
-        if (state->window) {
-            SDL_DestroyWindow(state->window);
-        }
-    }
+    state->shutdown();
     std::cout << "quit" << std::endl;
     /* SDL will clean up the window/renderer for us. */
 }

@@ -1,5 +1,0 @@
-//
-// Created by zhenya on 14.02.2026.
-//
-
-#include "PrefabProccessor.h"
