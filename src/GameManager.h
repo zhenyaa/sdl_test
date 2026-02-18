@@ -24,11 +24,20 @@ public:
 
     // void handleEvent(SDL_Event *event);
     void handleSystemEvent(SDL_Event *event);
-    void handleGameEvent(SDL_Event *event);
-    void update();
-    void updateTick(Uint64 tick);
-    void render();
 
+    void handleGameEvent(SDL_Event *event);
+
+    void update();
+
+    void updateTick(Uint64 tick);
+
+    void render();
+    void addTexture(std::unique_ptr<GameObject> obj);
+    SDL_Renderer *getRenderer();
+
+    /**
+     * destroy all sdl objects
+     */
     void shutdown();
 
     // Методы для работы с объектами

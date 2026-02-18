@@ -25,6 +25,7 @@ FetchContent_MakeAvailable(SDL3 SDL3_image)
 add_executable(sdl_test
         src/main.cpp
         src/utils.cpp
+        src/utils.h
         src/GameObject.cpp
         src/RigidBody.cpp
         src/RigidBody.h
@@ -37,6 +38,8 @@ add_executable(sdl_test
         src/Vec2.h
         src/GameManager.cpp
         src/GameManager.h
+        src/PrefabProcessor.cpp
+
 )
 
 add_custom_command(TARGET sdl_test POST_BUILD

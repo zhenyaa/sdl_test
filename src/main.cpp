@@ -17,22 +17,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include "GameManager.h"
-
-// struct GameManager {
-//     SDL_Window* window = nullptr;
-//     SDL_Renderer* renderer = nullptr;
-//     int width = 0;
-//     int height = 0;
-//     std::vector<std::unique_ptr<GameObject>> platforms;
-//     TexturePtr bgGradient;
-//     TexturePtr mainTex;
-//     float worldOffsetX = 0.0f;
-//     Uint64 lastTick = 0;
-//     float accumulator = 0.0f;
-//     bool moveLeft = false;
-//     bool moveRight = false;
-//     bool jumpPressed = false;
-// };
+#include "PrefabProcessor.h"
 
 // GameObject* AddPlatform(GameManager* gm, float x, float y, const sprites::SpriteInfo* tile, const std::vector<BoxCollider>& boxes)
 // {
@@ -88,7 +73,6 @@ TexturePtr CreateGradient(SDL_Renderer *r, int w, int h) {
     }
 
     SDL_SetRenderTarget(r, NULL);
-
     return tex;
 }
 
@@ -98,45 +82,21 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     if (!state->init(GameConfig::window_width, GameConfig::window_height)) {
         return SDL_APP_FAILURE;
     }
+    const std::string SPRITE_PATH = "assets/images/TILED_files/sprite_sheet2.png";
+    TextureUtils::TextureManager::loadSurface(SPRITE_PATH);
+    TextureUtils::TextureManager::processTextures(state->getRenderer());
+    auto f = FileUtils::loadJSON("./prefubs.json");
+    PrefabProcessor::loadFromFile("./prefubs.json");
+    // блок генерации игрового обьекта
+    Prefab pref = PrefabProcessor::get("HoleLarge").value();
+    std::unique_ptr<GameObject> gras = std::make_unique<GameObject>(900, 700, 1.5f, pref.colliders);
+    Sprite s = Sprite(pref.sprite, SDL_FRect{0,0,160,158}, true); // матод SDL_RenderTexture не отрабатывает без источника так как выходной считаеться по нему
+    gras->sprite = s;
+    state->addTexture(std::move(gras));
+    // конец блок генерации игрового обьекта, решить с размерами обьектов
+
     state->spawnPlayer(1,1);
 
-    // state->bgGradient = CreateGradient(state->renderer, state->width, state->height);
-    // auto tile = sprites::TILESET::getSprite("GrassMedium");
-    // auto prefab = FileUtils::loadJSON("./prefubs.json", tile->name);
-    // if (!prefab) {
-    //     return SDL_APP_FAILURE;
-    // }
-    // auto& colliders = (*prefab)["colliders"];
-    // std::vector<BoxCollider> boxes;
-    //
-    // for (auto& c : colliders) {
-    //     boxes.push_back({
-    //         c.value("x", 0.f),
-    //         c.value("y", 0.f),
-    //          c.value("w", 0.f),
-    //          c.value("h", 0.f)
-    //     });
-    // }
-    // // float w = tile->w;
-    // // float h = tile->h;
-    // GameObject* gm8 = AddPlatform(
-    //     state.get(),
-    //     600,
-    //     (float)state->height-200,
-    //     tile,
-    //     boxes
-    // );
-    //
-    //
-    // // GameObject* gm3 = AddPlatform(state.get(), 40, (float)state->height-40, Sprites::Objects_82);
-    // state->mainTex.reset(IMG_LoadTexture(state->renderer, "assets/images/main_asset.png"));
-    // if (!state->mainTex) {
-    //     SDL_Log("Failed to load image: %s", SDL_GetError());
-    // } else {
-    //     SDL_Log("Image loaded successfully!");
-    // }
-
-    // state->lastTick = SDL_GetTicks();
     *appstate = state.release();
     return SDL_APP_CONTINUE;
 }
@@ -155,8 +115,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
         default:
             break;
     }
-
-    // --- игровые события ---
     if (event->type == SDL_EVENT_KEY_DOWN || event->type == SDL_EVENT_KEY_UP) {
         state->handleGameEvent(event);
     }

@@ -14,8 +14,9 @@
 #include "Collider.h"
 
 struct Sprite {
-    SDL_Texture* texture = nullptr;
+    SDL_Texture *texture = nullptr;
     SDL_FRect src{};
+    bool useFullImage = false;
 };
 
 class GameObject {
@@ -36,17 +37,20 @@ public:
     GameObject(int x, int y) : x(x), y(y), width(10), height(10) {
         rb = std::make_unique<RigidBody>(this, GameConfig::gravity);
     };
+
     GameObject(int x, int y, float scale) : x(x), y(y), width(10), height(10), scale(scale) {
         rb = std::make_unique<RigidBody>(this, GameConfig::gravity);
     };
-    GameObject(int x, int y, float scale, const std::vector<BoxCollider>& boxes) : x(x), y(y), width(10), height(10), scale(scale)  {
+
+    GameObject(int x, int y, float scale, const std::vector<BoxCollider> &boxes) : x(x), y(y), width(10), height(10),
+        scale(scale) {
         rb = std::make_unique<RigidBody>(this, GameConfig::gravity);
-        for (auto& b : boxes) {
+        for (auto &b: boxes) {
             collider.boxes.push_back({
                 b.ox * scale,
                 b.oy * scale,
-                b.w  * scale,
-                b.h  * scale
+                b.w * scale,
+                b.h * scale
             });
         }
         // collider.boxes = boxes;
@@ -60,11 +64,14 @@ public:
     void update(float dt);
 
     void draw(SDL_Renderer *renderer);
+
     void draw(SDL_Renderer *renderer, bool debug);
 
-    void jump(float power= 400.f);
-    bool loadSprite(SDL_Renderer* renderer, const char* path, SDL_FRect srcRect);
-    void onCollision(GameObject* otherObj);
+    void jump(float power = 400.f);
+
+    bool loadSprite(SDL_Renderer *renderer, const char *path, SDL_FRect srcRect);
+
+    void onCollision(GameObject *otherObj);
 };
 
 

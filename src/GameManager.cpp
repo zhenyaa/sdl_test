@@ -59,6 +59,18 @@ void GameManager::handleGameEvent(SDL_Event *event) {
     }
 }
 
+void GameManager::render() {
+    SDL_SetRenderDrawColor(renderer, 100, 100, 100, SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(renderer);
+    // SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+
+    player->draw(renderer, true);
+    for (auto& plat: platforms) {
+        plat->draw(renderer, true);
+    }
+    SDL_RenderPresent(renderer);
+}
+
 void GameManager::update() {
     while (accumulator >= GameConfig::fixed_dt) {
         float moveDir = 0.f;
@@ -84,7 +96,7 @@ void GameManager::update() {
         }
     }
 
-    // скроллинг
+    // скроллинг, переделать на обьект камера
     float scrollThreshold = width / 3.0f;
     if (player->x - worldOffsetX > scrollThreshold) {
         worldOffsetX = player->x - scrollThreshold;
@@ -100,9 +112,12 @@ void GameManager::updateTick(const Uint64 tick) {
     accumulator += frameDt;
 }
 
-void GameManager::render() {
-    player->draw(renderer, true);
-    SDL_RenderPresent(renderer);
+void GameManager::addTexture(std::unique_ptr<GameObject> obj) {
+    platforms.push_back(std::move(obj));
+}
+
+SDL_Renderer * GameManager::getRenderer() {
+    return renderer;
 }
 
 void GameManager::shutdown() {
