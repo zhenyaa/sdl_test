@@ -19,6 +19,8 @@ struct Prefab {
     std::string name;
     SDL_Texture* sprite;
     std::vector<BoxCollider> colliders;
+    float width;
+    float height;
     bool hasRigidBody = true;
 };
 

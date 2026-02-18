@@ -32,7 +32,7 @@ public:
     void updateTick(Uint64 tick);
 
     void render();
-    void addTexture(std::unique_ptr<GameObject> obj);
+    void addObject(std::unique_ptr<GameObject> obj);
     SDL_Renderer *getRenderer();
 
     /**

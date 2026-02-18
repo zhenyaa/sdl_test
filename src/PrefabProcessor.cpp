@@ -37,7 +37,6 @@ bool PrefabProcessor::loadFromFile(const std::string &path) {
 
             std::string name = key;
 
-            // Берём готовую текстуру
             SDL_Texture* tex = TextureUtils::TextureManager::get(name);
             if (!tex) {
                 SDL_Log("Texture not found for prefab: %s", name.c_str());
@@ -47,6 +46,8 @@ bool PrefabProcessor::loadFromFile(const std::string &path) {
             Prefab p;
             p.name = name;
             p.sprite = tex;
+            p.height = val["size"][1].get<int>();
+            p.width = val["size"][0].get<int>();
 
             try {
                 if (val.contains("colliders")) {
@@ -62,9 +63,9 @@ bool PrefabProcessor::loadFromFile(const std::string &path) {
             } catch (const nlohmann::json::type_error& e) {
                 SDL_Log("Warning: Invalid 'rigidbody' field for prefab '%s': %s",
                 name.c_str(), e.what());
-                p.hasRigidBody = true; // fallback to default
+                p.hasRigidBody = true;
             }
-            // Rigidbody
+
              p.hasRigidBody = true;
 
             prefabs.emplace(name, std::move(p));

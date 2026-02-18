@@ -32,7 +32,7 @@ void GameObject::draw(SDL_Renderer *renderer, bool debug) {
         SDL_RenderFillRect(renderer, &obj_rect);
     } else {
         const SDL_FRect dstRect = {static_cast<float>(x), static_cast<float>(y), sprite.src.w * scale, sprite.src.h * scale};
-        SDL_RenderTexture(renderer, sprite.texture, nullptr, &dstRect);
+        SDL_RenderTexture(renderer, sprite.texture, &sprite.src, &dstRect);
     }
 
     if (debug) {

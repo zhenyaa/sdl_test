@@ -112,7 +112,7 @@ void GameManager::updateTick(const Uint64 tick) {
     accumulator += frameDt;
 }
 
-void GameManager::addTexture(std::unique_ptr<GameObject> obj) {
+void GameManager::addObject(std::unique_ptr<GameObject> obj) {
     platforms.push_back(std::move(obj));
 }
 

@@ -17,6 +17,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include "GameManager.h"
+#include "LevelLoader.h"
 #include "PrefabProcessor.h"
 
 // GameObject* AddPlatform(GameManager* gm, float x, float y, const sprites::SpriteInfo* tile, const std::vector<BoxCollider>& boxes)
@@ -77,6 +78,7 @@ TexturePtr CreateGradient(SDL_Renderer *r, int w, int h) {
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
+    auto basePath = SDL_GetBasePath();
     SDL_SetAppMetadata("Example Renderer Clear", "1.0", "com.example.renderer-clear");
     auto state = std::make_unique<GameManager>();
     if (!state->init(GameConfig::window_width, GameConfig::window_height)) {
@@ -85,14 +87,16 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     const std::string SPRITE_PATH = "assets/images/TILED_files/sprite_sheet2.png";
     TextureUtils::TextureManager::loadSurface(SPRITE_PATH);
     TextureUtils::TextureManager::processTextures(state->getRenderer());
-    auto f = FileUtils::loadJSON("./prefubs.json");
-    PrefabProcessor::loadFromFile("./prefubs.json");
+    PrefabProcessor::loadFromFile(basePath + GameConfig::EVN_PREFAB_PATH);
     // блок генерации игрового обьекта
-    Prefab pref = PrefabProcessor::get("HoleLarge").value();
-    std::unique_ptr<GameObject> gras = std::make_unique<GameObject>(900, 700, 1.5f, pref.colliders);
-    Sprite s = Sprite(pref.sprite, SDL_FRect{0,0,160,158}, true); // матод SDL_RenderTexture не отрабатывает без источника так как выходной считаеться по нему
-    gras->sprite = s;
-    state->addTexture(std::move(gras));
+    // Prefab pref = PrefabProcessor::get("HoleLarge").value();
+    // std::unique_ptr<GameObject> gras = std::make_unique<GameObject>(900, 700, 1.5f, pref.colliders);
+    // Sprite s = Sprite(pref.sprite, SDL_FRect{0,0,160,158}, true); // матод SDL_RenderTexture не отрабатывает без источника так как выходной считаеться по нему
+    // gras->sprite = s;
+    // state->addObject(std::move(gras));
+    LevelLoader::spawn(*state, "GrassEdgeRight", 0, 900, 1.f);
+    LevelLoader::spawn(*state, "GrassCornerBottomLeft", 200, 900, 1.f);
+    LevelLoader::spawn(*state, "HoleLarge", 500, 900, 1.f);
     // конец блок генерации игрового обьекта, решить с размерами обьектов
 
     state->spawnPlayer(1,1);

@@ -9,4 +9,5 @@ struct GameConfig {
     static constexpr int ground_level = 950;
     static constexpr int window_width = 640;
     static constexpr int window_height = 480;
+    inline static const std::string EVN_PREFAB_PATH = "/assets/prefabs/envPrefabs.json";
 };

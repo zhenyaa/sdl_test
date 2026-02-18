@@ -39,6 +39,8 @@ add_executable(sdl_test
         src/GameManager.cpp
         src/GameManager.h
         src/PrefabProcessor.cpp
+        src/LevelLoader.cpp
+        src/LevelLoader.h
 
 )
 
@@ -64,14 +66,13 @@ add_executable(prefab_generator
         src/sprites.h
         src/generated_sprites.h
         src/PrefabGenerator.cpp
-        src/Vec2.cpp
-        src/Vec2.h
         src/GameObjectFactory.cpp
         src/GameObjectFactory.h
         src/PrefabProcessor.cpp
         src/PrefabProcessor.h
-        src/GameManager.cpp
-        src/GameManager.h
+#        src/GameManager.cpp
+#        src/GameManager.h
+
 )
 add_custom_command(TARGET prefab_generator POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory

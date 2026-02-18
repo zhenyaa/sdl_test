@@ -10,7 +10,7 @@
 #include <nlohmann/json.hpp>
 #include "Tileset.h"
 #include <fstream>
-
+#include "config.h"
 #include "SDL3_image/SDL_image.h"
 
 struct BoxCollider {
@@ -71,7 +71,6 @@ CellOfPixels processPixelsToCell(
         }
     }
 
-    // Среднее значение
     Uint8 avgR = sumR / count;
     Uint8 avgG = sumG / count;
     Uint8 avgB = sumB / count;
@@ -99,9 +98,7 @@ const sprites::SpriteInfo *IterSprite(bool reset = false) {
     if (sprites::TILESET::sprites[index].name == nullptr) {
         return nullptr; // конец массива
     }
-
     return &sprites::TILESET::sprites[index++];
-
 }
 
 int main(int argc, char** argv) {
@@ -113,7 +110,6 @@ int main(int argc, char** argv) {
     }
     if (basePath == nullptr) {
         SDL_Log("Couldn't create SDL: %s", SDL_GetError());
-
         return 1;
     }
     SDL_Log("Base path: %s", basePath);
@@ -140,22 +136,23 @@ int main(int argc, char** argv) {
 
     tryAgain:
     SDL_FRect srcRect;
-    auto* BigGrassSpike = IterSprite();
+    auto* sprite_meta = IterSprite();
 
-    if (BigGrassSpike == nullptr) {
+    if (sprite_meta == nullptr) {
         auto path = SDL_GetBasePath();
-        std::ofstream file("./prefubs.json");
+        auto fullPath = std::string(path) + GameConfig::EVN_PREFAB_PATH;
+        std::ofstream file(fullPath);
         file << j;
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
-        SDL_Quit();
         file.close();
+        SDL_Quit();
         return 0;
-    }
-    srcRect.x = BigGrassSpike->x;
-    srcRect.y = BigGrassSpike->y;
-    srcRect.w = BigGrassSpike->w;
-    srcRect.h = BigGrassSpike->h;
+    } // exit block
+    srcRect.x = sprite_meta->x;
+    srcRect.y = sprite_meta->y;
+    srcRect.w = sprite_meta->w;
+    srcRect.h = sprite_meta->h;
     SDL_FRect dstRect = { 100.f, 100.f, srcRect.w, srcRect.h };
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     std::vector<BoxCollider> colliders;
@@ -183,7 +180,7 @@ int main(int argc, char** argv) {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        // рисуем текстуру
+
         SDL_RenderTexture(renderer, texture, &srcRect, &dstRect);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 180);
@@ -200,8 +197,11 @@ int main(int argc, char** argv) {
             SDL_RenderRect(renderer, &r);
 
         }
-        // SDL_Log("name of sprite %s", BigGrassSpike->name);
-        j[BigGrassSpike->name]["colliders"] = collidersJson;
+        nlohmann::json spriteSize = nlohmann::json::array();
+        spriteSize.push_back(srcRect.w);
+        spriteSize.push_back(srcRect.h);
+        j[sprite_meta->name]["size"] = spriteSize;
+        j[sprite_meta->name]["colliders"] = collidersJson;
         SDL_Log("data json %s",j.dump(2).c_str());
         SDL_RenderPresent(renderer);
         SDL_Delay(1000); // ~60fps
