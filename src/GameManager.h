@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 
+#include "ConsoleManager.h"
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_render.h"
 
@@ -19,7 +20,7 @@ public:
     GameManager();
 
     ~GameManager();
-
+    std::unique_ptr<ConsoleManager> console;
     bool init(int window_width, int window_height);
 
     // void handleEvent(SDL_Event *event);

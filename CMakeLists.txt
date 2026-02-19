@@ -60,6 +60,8 @@ add_executable(sdl_test
         src/PrefabProcessor.cpp
         src/LevelLoader.cpp
         src/LevelLoader.h
+        src/ConsoleManager.cpp
+        src/ConsoleManager.h
 
 )
 
@@ -89,7 +91,8 @@ add_executable(prefab_generator
         src/GameObjectFactory.h
         src/PrefabProcessor.cpp
         src/PrefabProcessor.h
-#        src/GameManager.cpp
+
+        #        src/GameManager.cpp
 #        src/GameManager.h
 
 )
