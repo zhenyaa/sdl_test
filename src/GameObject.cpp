@@ -36,7 +36,7 @@ void GameObject::draw(SDL_Renderer *renderer, bool debug) {
     }
 
     if (debug) {
-        std::cout<<"try render collider" << std::endl;
+        // std::cout<<"try render collider" << std::endl;
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180); // зелёный
 

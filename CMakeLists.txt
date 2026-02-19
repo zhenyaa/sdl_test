@@ -6,22 +6,41 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_CXX_COMPILER g++-13)
 #set(CMAKE_C_COMPILER gcc-13)
 include(FetchContent)
-
+# SDL3
 FetchContent_Declare(
         SDL3
         GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
         GIT_TAG release-3.4.x
 )
+
+# SDL_image
 FetchContent_Declare(
         SDL3_image
         GIT_REPOSITORY https://github.com/libsdl-org/SDL_image.git
         GIT_TAG release-3.4.x
 )
 
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
-FetchContent_MakeAvailable(json)
+# SDL_ttf
+FetchContent_Declare(
+        SDL3_ttf
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf.git
+        GIT_TAG main
+)
 
-FetchContent_MakeAvailable(SDL3 SDL3_image)
+# nlohmann json
+FetchContent_Declare(
+        json
+        URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+)
+
+# ---- build dependencies ----
+FetchContent_MakeAvailable(
+        SDL3
+        SDL3_image
+        SDL3_ttf
+        json
+)
+
 add_executable(sdl_test
         src/main.cpp
         src/utils.cpp
@@ -51,10 +70,10 @@ add_custom_command(TARGET sdl_test POST_BUILD
 
 
 
-target_link_libraries(sdl_test
-        PRIVATE
+target_link_libraries(sdl_test PRIVATE
         SDL3::SDL3
         SDL3_image::SDL3_image
+        SDL3_ttf::SDL3_ttf
         nlohmann_json::nlohmann_json
 )
 
@@ -74,13 +93,15 @@ add_executable(prefab_generator
 #        src/GameManager.h
 
 )
-add_custom_command(TARGET prefab_generator POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/src/assets $<TARGET_FILE_DIR:sdl_test>/assets
-)
+
 target_link_libraries(prefab_generator
         PRIVATE
         SDL3::SDL3
         SDL3_image::SDL3_image
         nlohmann_json::nlohmann_json
+)
+
+add_custom_command(TARGET prefab_generator POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/src/assets $<TARGET_FILE_DIR:sdl_test>/assets
 )

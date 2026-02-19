@@ -19,6 +19,77 @@
 #include "GameManager.h"
 #include "LevelLoader.h"
 #include "PrefabProcessor.h"
+#include "SDL3_ttf/SDL_ttf.h"
+
+SDL_Texture* gConsole = nullptr;
+std::string gConsoleBuffer;
+TTF_Font* gFont = nullptr;
+
+SDL_AppResult consoleLoop(GameManager *state) {
+    if (!gConsole || !gFont) return SDL_APP_FAILURE;
+
+    SDL_Renderer* renderer = state->getRenderer();
+    SDL_SetRenderTarget(renderer, gConsole);
+
+
+    SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
+    SDL_RenderClear(renderer);
+
+    if (!gConsoleBuffer.empty()) {
+        SDL_Color color{255, 255, 255, 255};
+        SDL_Surface* surf = TTF_RenderText_Blended(gFont, gConsoleBuffer.c_str(), gConsoleBuffer.size(), color);
+        if (surf) {
+            SDL_Texture* txt = SDL_CreateTextureFromSurface(renderer, surf);
+            SDL_FRect dst{5, 5, (float)surf->w, (float)surf->h};
+            SDL_RenderTexture(renderer, txt, nullptr, &dst);
+            SDL_DestroyTexture(txt);
+            SDL_DestroySurface(surf);
+        }
+    }
+
+    SDL_SetRenderTarget(renderer, nullptr);
+
+    SDL_FRect dstRect = {0,0,(float)state->getWidth(), (float)state->getHeight()/3};
+    SDL_RenderTexture(renderer, gConsole, nullptr, &dstRect);
+    SDL_RenderPresent(renderer);
+    return SDL_APP_CONTINUE;
+}
+
+void destroyConsole(GameManager *state)
+{
+    SDL_StopTextInput(state->getWindow());
+    SDL_DestroyTexture(gConsole);
+    gConsole = nullptr;
+}
+
+SDL_AppResult consoleEvent(GameManager *state, SDL_Event *event) {
+    switch (event->type)
+    {
+        case SDL_EVENT_TEXT_INPUT:
+            gConsoleBuffer += event->text.text;
+            break;
+
+        case SDL_EVENT_KEY_DOWN:
+        {
+            SDL_Keycode key = event->key.key;
+            if (key == SDLK_BACKSPACE && !gConsoleBuffer.empty())
+                gConsoleBuffer.pop_back();
+            if (key == SDLK_RETURN)
+            {
+                SDL_Log("Command: %s", gConsoleBuffer.c_str());
+                gConsoleBuffer.clear();
+            }
+            if (key == SDLK_ESCAPE)
+            {
+                destroyConsole(state);
+            }
+            break;
+        }
+    }
+
+    return SDL_APP_CONTINUE;
+}
+
 
 // GameObject* AddPlatform(GameManager* gm, float x, float y, const sprites::SpriteInfo* tile, const std::vector<BoxCollider>& boxes)
 // {
@@ -77,6 +148,42 @@ TexturePtr CreateGradient(SDL_Renderer *r, int w, int h) {
     return tex;
 }
 
+void createConsole(GameManager *state) {
+
+    SDL_Log("Creating Console");
+    TTF_Init();
+    if (!gFont) {
+        gFont = TTF_OpenFont("assets/fonts/Consolas-Regular.ttf", 18);
+        if (!gFont) {
+            SDL_Log("Failed to load font: %s", SDL_GetError());
+            return;
+        }
+    }
+    gConsole =
+        SDL_CreateTexture(
+            state->getRenderer(),
+            SDL_PIXELFORMAT_RGBA8888,
+            SDL_TEXTUREACCESS_TARGET,
+            state->getWidth(),
+            state->getHeight() / 3
+        );
+
+    if (!gConsole) {
+        SDL_Log("cant create texture");
+        return;
+    }
+    SDL_Renderer *renderer = state->getRenderer();
+    SDL_SetRenderTarget(renderer, gConsole);
+    SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
+    SDL_RenderClear(renderer);
+    SDL_SetRenderTarget(renderer, nullptr);
+    SDL_FRect dstRect = {0,0,(float)state->getWidth(), (float)state->getHeight() / 3};
+    SDL_RenderTexture(renderer, gConsole, nullptr, &dstRect);
+    SDL_RenderPresent(renderer);
+    SDL_StartTextInput(state->getWindow());
+}
+
+
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     auto basePath = SDL_GetBasePath();
     SDL_SetAppMetadata("Example Renderer Clear", "1.0", "com.example.renderer-clear");
@@ -97,6 +204,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     LevelLoader::spawn(*state, "GrassEdgeRight", 0, 900, 1.f);
     LevelLoader::spawn(*state, "GrassCornerBottomLeft", 200, 900, 1.f);
     LevelLoader::spawn(*state, "HoleLarge", 500, 900, 1.f);
+    LevelLoader::spawn(*state, "HoleLarge", 800, 900, 1.f);
+    LevelLoader::spawn(*state, "HoleLarge", 1100, 900, 1.f);
     // конец блок генерации игрового обьекта, решить с размерами обьектов
 
     state->spawnPlayer(1,1);
@@ -108,9 +217,16 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     auto *state = static_cast<GameManager*>(appstate);
+    if (gConsole)
+        return consoleEvent(state, event);
     switch (event->type) {
         case SDL_EVENT_QUIT:
             return SDL_APP_SUCCESS;
+        case SDL_EVENT_KEY_DOWN:
+            if (event->key.key == SDLK_GRAVE) {
+                createConsole(state);
+                break;
+            }
 
         case SDL_EVENT_WINDOW_RESIZED:
             state->handleSystemEvent(event);
@@ -172,6 +288,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     auto *state = static_cast<GameManager*>(appstate);
     if (!state) {
         SDL_Log("cant get GameManager");
+    }
+    if (gConsole) {
+        return consoleLoop(state);
     }
     state->updateTick(SDL_GetTicks());
     state->update();

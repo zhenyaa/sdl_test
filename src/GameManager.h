@@ -34,7 +34,9 @@ public:
     void render();
     void addObject(std::unique_ptr<GameObject> obj);
     SDL_Renderer *getRenderer();
-
+    SDL_Window *getWindow();
+    int getWidth();
+    int getHeight();
     /**
      * destroy all sdl objects
      */

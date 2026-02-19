@@ -5,10 +5,13 @@
 #include "GameManager.h"
 
 #include "GameObject.h"
+// #include "../cmake-build-debug/_deps/sdl3-src/src/video/SDL_sysvideo.h"
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_log.h"
 #include "SDL3/SDL_timer.h"
-
+#include "SDL3/SDL_video.h"
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 GameManager::GameManager() {
 }
 
@@ -118,6 +121,22 @@ void GameManager::addObject(std::unique_ptr<GameObject> obj) {
 
 SDL_Renderer * GameManager::getRenderer() {
     return renderer;
+}
+
+SDL_Window * GameManager::getWindow() {
+    return window;
+}
+
+int GameManager::getWidth() {
+    int w;
+    SDL_GetWindowSize(window, &w, nullptr);
+    return w;
+}
+
+int GameManager::getHeight() {
+    int h;
+    SDL_GetWindowSize(window, nullptr, &h);
+    return h;
 }
 
 void GameManager::shutdown() {
