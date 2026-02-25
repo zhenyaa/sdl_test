@@ -12,6 +12,10 @@
 #include "SDL3/SDL_video.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+
+#include "imgui.h"
+#include "backends/imgui_impl_sdl3.h"
+#include "imgui_impl_sdlrenderer3.h"
 GameManager::GameManager() {
 }
 
@@ -33,6 +37,26 @@ bool GameManager::init(const int window_width, const int window_height) {
         SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return false;
     }
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsLight();
+
+    // Setup scaling
+    ImGuiStyle& style = ImGui::GetStyle();
+    // style.ScaleAllSizes(main_scale);        // Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
+    // style.FontScaleDpi = main_scale;        // Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
+    ImGui_ImplSDLRenderer3_Init(renderer);
+    // ImGui_ImplSDLRenderer3_Init(renderer);
+    // ImGui_ImplSDL3_InitForSDLRenderer(renderer, window);
     if (!SDL_SetRenderLogicalPresentation(renderer, window_width, window_height,
                                      SDL_LOGICAL_PRESENTATION_DISABLED)) {
         SDL_Log("Couldn't set logical presentation: %s", SDL_GetError());
@@ -63,15 +87,15 @@ void GameManager::handleGameEvent(SDL_Event *event) {
 }
 
 void GameManager::render() {
-    SDL_SetRenderDrawColor(renderer, 100, 100, 100, SDL_ALPHA_OPAQUE);
-    SDL_RenderClear(renderer);
+    // SDL_SetRenderDrawColor(renderer, 100, 100, 100, SDL_ALPHA_OPAQUE);
+    // SDL_RenderClear(renderer);
     // SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
     player->draw(renderer, true);
     for (auto& plat: platforms) {
         plat->draw(renderer, true);
     }
-    SDL_RenderPresent(renderer);
+    // SDL_RenderPresent(renderer);
 }
 
 void GameManager::update() {
@@ -158,4 +182,8 @@ GameObject* GameManager::spawnPlayer(float x, float y) {
     player->y = height / 2.0f;
 
     return player.get();
-};
+}
+
+// bool GameManager::registerEvent(SDL_Event *event) {
+//     SDL_Event
+// };

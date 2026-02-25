@@ -20,10 +20,18 @@
 #include "LevelLoader.h"
 #include "PrefabProcessor.h"
 #include "SDL3_ttf/SDL_ttf.h"
+#include "imgui.h"
+#include "imgui_impl_sdlrenderer3.h"
+#include "backends/imgui_impl_sdl3.h"
+#include "backends/imgui_impl_opengl3.h"
+// #include "imgui_impl_win32.h"
+// #include "imgui_impl_dx11.h"
+
+int counter = 0;
 
 
-
-
+bool show_another_window = false;
+ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 // GameObject* AddPlatform(GameManager* gm, float x, float y, const sprites::SpriteInfo* tile, const std::vector<BoxCollider>& boxes)
 // {
 //     auto obj = std::make_unique<GameObject>(x, y, 2.f, boxes);
@@ -107,6 +115,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
     state->spawnPlayer(1,1);
 
+
     *appstate = state.release();
     return SDL_APP_CONTINUE;
 }
@@ -189,9 +198,42 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     if (state->console) {
         return state->console->consoleLoop();
     }
+
+    SDL_SetRenderDrawColor(state->getRenderer(), 100, 100, 100, SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(state->getRenderer());
+    ImGui_ImplSDLRenderer3_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+    ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+    // ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+    ImGui::Checkbox("Another Window", &show_another_window);
+
+    // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+    ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+    if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+        counter++;
+    ImGui::SameLine();
+    ImGui::Text("counter = %d", counter);
+
+    // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / SDL.Framerate, io.Framerate);
+
+    ImGui::End();
+    // ImGui::EndFrame();
+    // ImGui::Render();
+    // ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), state->getRenderer());
     state->updateTick(SDL_GetTicks());
     state->update();
     state->render();
+    ImGui::Render();
+    ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), state->getRenderer());
+
+    // Показываем результат на экране
+    SDL_RenderPresent(state->getRenderer());
+    // SDL_RenderPresent(renderer);
     // Uint64 now = SDL_GetTicks();
     // float frameDt = (now - state->lastTick) / 1000.0f;
     // state->lastTick = now;

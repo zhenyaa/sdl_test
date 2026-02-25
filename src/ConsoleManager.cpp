@@ -17,9 +17,11 @@ ConsoleManager::ConsoleManager(GameManager& gm) : game(gm) {
             return;
         }
     }
+    SDL_Renderer* renderer = game.getRenderer();
+
     gConsole =
             SDL_CreateTexture(
-                game.getRenderer(),
+                renderer,
                 SDL_PIXELFORMAT_RGBA8888,
                 SDL_TEXTUREACCESS_TARGET,
                 game.getWidth(),
@@ -30,14 +32,32 @@ ConsoleManager::ConsoleManager(GameManager& gm) : game(gm) {
         SDL_Log("cant create texture");
         return;
     }
-    SDL_Renderer *renderer = game.getRenderer();
-    SDL_SetRenderTarget(renderer, gConsole);
-    SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
-    SDL_RenderClear(renderer);
+
+    backgroundCopy = SDL_CreateTexture(
+     renderer,
+     SDL_PIXELFORMAT_RGBA8888,
+     SDL_TEXTUREACCESS_TARGET,
+     game.getWidth(),
+     game.getHeight()
+ );
+
+    if (backgroundCopy) {
+        SDL_SetRenderTarget(renderer, backgroundCopy);
+        SDL_RenderTexture(renderer, nullptr, nullptr, nullptr);
+        SDL_SetRenderTarget(renderer, gConsole);
+    }
+
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_MUL);
+    SDL_SetRenderDrawColor(renderer, 20, 20, 20, 200); // 200 = прозрачность
+    SDL_FRect dstRect = {0, 0, (float)game.getWidth(), (float)game.getHeight() / 3};
+    SDL_RenderFillRect(renderer, &dstRect);
+
+
     SDL_SetRenderTarget(renderer, nullptr);
-    SDL_FRect dstRect = {0, 0, (float) game.getWidth(), (float) game.getHeight() / 3};
     SDL_RenderTexture(renderer, gConsole, nullptr, &dstRect);
     SDL_RenderPresent(renderer);
+
     SDL_StartTextInput(game.getWindow());
 }
 
@@ -47,6 +67,9 @@ ConsoleManager::~ConsoleManager() {
         SDL_DestroyTexture(gConsole);
     if (gFont)
         TTF_CloseFont(gFont);
+    if (backgroundCopy) {
+        SDL_DestroyTexture(backgroundCopy);
+    }
 }
 
 

@@ -49,6 +49,8 @@ public:
     GameObject *spawnPlayer(float x, float y);
 
 private:
+    // bool registerEvent(SDL_Event *event);
+    // void managerEventLoop(SDL_Event *event);
     SDL_Window *window = nullptr;
     SDL_Renderer *renderer = nullptr;
     int width = 0;

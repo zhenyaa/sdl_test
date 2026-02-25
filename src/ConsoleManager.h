@@ -27,8 +27,10 @@ public:
 private:
     GameManager& game;
     SDL_Texture *gConsole = nullptr;
+    SDL_Texture* backgroundCopy = nullptr;
     std::string gConsoleBuffer;
     TTF_Font *gFont = nullptr;
+
 };
 
 
